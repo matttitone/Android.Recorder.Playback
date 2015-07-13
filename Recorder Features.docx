@@ -1,0 +1,37 @@
+Recorder Features
+1.	Record
+a)	Start record
+b)	Pause
+c)	Stop record
+d)	Current record time 
+Problems:
+a)	How long will the record will be? For example maybe 60 mintues?
+b)	How many records can we have most?
+c)	What will we do if a call come when we are recording?
+2.	Play Record
+a)	Start Play
+b)	Pause
+c)	Stop
+d)	Volume adjust
+e)	Mute
+3.	Save Record
+a)	Change file name
+Problems:
+a)	How long will the file name be(1-32)?
+b)	What letters can be the valid name?
+c)	Can’t have the same file name?
+
+4.	List Record
+a)	List all the record
+b)	Show the record filename, date, time, size
+Problems:
+a)	How many items can be showed on the screen?
+
+5.	Edit Record
+a)	Change the filename of the record
+b)	Delete the record
+
+6.	Share Record
+a)	Share record with each other with qq
+
+
