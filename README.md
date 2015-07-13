@@ -1,2 +1,2 @@
 # Android.Recorder.Playback
-Record and playback audio files adn share them via Local Wireless
+Record and playback audio files and share them via Local Wireless
