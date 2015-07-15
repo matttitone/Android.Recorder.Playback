@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">RecordDemo</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="startRecord">StartRecord</string>
+    <string name="pauseRecord">PauseRecord</string>
+    <string name="continueRecord">ContinueRecord</string>
+    <string name="stopRecord">StopRecord</string>
+    <string name="startPlay">StartPlay</string>
+    <string name="stopPlay">StopPlay</string>
+    <string name="stateRecord">Recording now...</string>
+    <string name="stateStopRecord">Record complete!</string>
+    <string name="statePlay">Playing now...</string>
+    <string name="stateStopPlay">Play complete!</string>
+    <string name="statePause">Paused</string>
+</resources>
