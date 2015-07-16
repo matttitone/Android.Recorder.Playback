@@ -28,6 +28,9 @@ public class MyAdapter extends BaseAdapter {
 
     private boolean isMulChoice = false;
 
+    //position
+    private static int pos;
+
     // constructor
     public MyAdapter(ArrayList<String> list,Context context)
     {
@@ -37,6 +40,7 @@ public class MyAdapter extends BaseAdapter {
         isSelected = new HashMap<Integer, Boolean>();
         // add data to the list��
         initDate();
+        pos = -1;
     }
 
     public void setMulChoice(boolean flag)
@@ -92,10 +96,22 @@ public class MyAdapter extends BaseAdapter {
             holder = (ViewHolder)convertView.getTag();
         }
 
+
+
         // ����list��TextView����ʾ
         holder.tv.setText(list.get(position));
+        holder.tv.setTextColor(-16777216);
+        //Position
+        if (pos == position) {
+           // holder.tv.setTextColor();
+            convertView.setBackgroundColor(-3355444);
+        }
+        else {
+            convertView.setBackgroundColor(-1);
+        }
         // ����isSelected������checkbox��ѡ�����
         holder.cb.setChecked(getIsSelected().get(position));
+
         if(isMulChoice == false)
         {
             holder.cb.setVisibility(View.INVISIBLE);
@@ -112,7 +128,13 @@ public class MyAdapter extends BaseAdapter {
         MyAdapter.isSelected = isSelected;
     }
 
+    public static void setPos (int position) {
+        pos = position;
+    }
 
+    public static int getPos() {
+        return pos;
+    }
 }
 
 class ViewHolder

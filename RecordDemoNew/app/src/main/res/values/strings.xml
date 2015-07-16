@@ -16,4 +16,6 @@
     <string name="statePause">Paused</string>
     <string name="showList">Show Record List</string>
     <string name="checkSD">Store the record to SD Card</string>
+    <string name="action_share">Share the record with others</string>
+    <string name="action_setting">Setting</string>
 </resources>

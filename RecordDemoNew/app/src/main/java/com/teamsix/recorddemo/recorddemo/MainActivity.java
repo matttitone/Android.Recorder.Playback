@@ -6,7 +6,10 @@ import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Environment;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -16,8 +19,7 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.util.ArrayList;
 
-
-public class MainActivity extends Activity {
+public class MainActivity extends ActionBarActivity {
 
     private static final String LOG_TAG = "AudioRecordTest";
     //save path of the record file
@@ -78,6 +80,31 @@ public class MainActivity extends Activity {
         state = (TextView)findViewById(R.id.state);
 
 
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_share) {
+            return true;
+        }
+        if (id == R.id.action_setting) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     // set the text of the textView

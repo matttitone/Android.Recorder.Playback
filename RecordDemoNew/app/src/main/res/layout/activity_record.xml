@@ -13,28 +13,34 @@
         android:layout_alignParentTop="true"
         />
     <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Return"
-        android:id="@+id/btnSingleChoice"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/selector_icon_rename"
+        android:id="@+id/btnFirst"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+        android:layout_marginLeft="20dp"/>
+
+
 
     <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Share"
-        android:id="@+id/btnShare"
-        android:layout_alignTop="@+id/btnSingleChoice"
-        android:layout_alignParentEnd="true" />
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:id="@+id/btnSecond"
+        android:background="@drawable/selector_icon_play"
+        android:layout_alignTop="@+id/btnFirst"
+        android:layout_centerHorizontal="true"
+        />
 
     <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Delete"
-        android:id="@+id/btnDelete"
-        android:layout_alignTop="@+id/btnSingleChoice"
-        android:layout_centerHorizontal="true" />
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:id="@+id/btnThird"
+        android:background="@drawable/selector_icon_info"
+        android:layout_alignTop="@+id/btnFirst"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="20dp"
+        />
 
     <ListView
         android:layout_width="wrap_content"
@@ -42,6 +48,6 @@
         android:id="@+id/listView"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/tvNumber"
-        android:layout_above="@+id/btnSingleChoice"
+        android:layout_above="@+id/btnFirst"
         android:layout_alignParentEnd="true" />
 </RelativeLayout>
