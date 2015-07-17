@@ -1,0 +1,27 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent"
+    >
+
+    <PreferenceCategory android:title="Settings" >
+        <CheckBoxPreference
+            android:key="checkbox_storeinsdcard"
+            android:summary="file path to sdcard:SD/Records"
+            android:title="Save the Record to SD card" />
+        <ListPreference
+            android:dialogTitle="Record Format"
+            android:entries="@array/entries_list_codec"
+            android:entryValues="@array/entries_value_list_codec"
+            android:key="list_format"
+            android:title="Choose the format of the record" />
+        <ListPreference
+            android:dialogTitle="Record Quality"
+            android:entries="@array/entries_list_quaility"
+            android:entryValues="@array/entries_value_list_quaility"
+            android:key="list_quality"
+            android:title="Choose the quaility of the record" />
+        <Preference android:key="preference" android:title="preference"/>
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

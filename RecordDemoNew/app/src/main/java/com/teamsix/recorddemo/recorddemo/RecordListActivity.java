@@ -10,6 +10,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.ActionBarActivity;
+import android.text.InputFilter;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -90,12 +93,39 @@ public class RecordListActivity extends ActionBarActivity {
                 }
                 else // now that will be the rename function
                 {
-                    AlertDialog.Builder builderR = new AlertDialog.Builder(RecordListActivity.this);
+                    final AlertDialog.Builder builderR = new AlertDialog.Builder(RecordListActivity.this);
                     builderR.setTitle("Rename file");
                     builderR.setCancelable(true);
 
+                    InputFilter filter = new InputFilter() {
+                        @Override
+                        public CharSequence filter(CharSequence source, int start, int end,
+                                                   Spanned dest, int dstart, int dend) {
 
+                            if (source instanceof SpannableStringBuilder) {
+                                SpannableStringBuilder sourceAsSpannableBuilder = (SpannableStringBuilder)source;
+                                for (int i = end - 1; i >= start; i--) {
+                                    char currentChar = source.charAt(i);
+                                    if (!Character.isLetterOrDigit(currentChar)) {
+                                        Toast.makeText(builderR.getContext(), "Only Characters or Digits allowed!", Toast.LENGTH_LONG);
+                                        sourceAsSpannableBuilder.delete(i, i+1);
+                                    }
+                                }
+                                return source;
+                            } else {
+                                StringBuilder filteredStringBuilder = new StringBuilder();
+                                for (int i = start; i < end; i++) {
+                                    char currentChar = source.charAt(i);
+                                    if (Character.isLetterOrDigit(currentChar)) {
+                                        filteredStringBuilder.append(currentChar);
+                                    }
+                                }
+                                return filteredStringBuilder.toString();
+                            }
+                        }
+                    };
                     final EditText input = new EditText(getApplicationContext());
+                    input.setFilters(new InputFilter[]{filter});
                     try {
                         input.setText(list.get(MyAdapter.getPos()).toCharArray(), 0, list.get(MyAdapter.getPos()).lastIndexOf("."));
                     }
@@ -135,7 +165,6 @@ public class RecordListActivity extends ActionBarActivity {
                                     fileName = fileName + suffix;
                                 }
                                 File to = new File(dir + "/" + fileName);
-
 
                                 if(from.renameTo(to)){
                                     System.out.println("The position is " + MyAdapter.getPos());
@@ -424,6 +453,8 @@ public class RecordListActivity extends ActionBarActivity {
             return true;
         }
         if (id == R.id.action_setting) {
+            Intent intent = new Intent(this, SettingActivity.class);
+            startActivity(intent);
             return true;
         }
 

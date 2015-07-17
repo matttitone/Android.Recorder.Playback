@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="entries_list_quaility">
+        <item>High Quality</item>
+        <item>Middle Quality</item>
+        <item>Low Quality</item>
+    </string-array>
+    <string-array name="entries_value_list_quaility">
+        <item>High</item>
+        <item>Middle</item>
+        <item>Low</item>
+    </string-array>
+    <string-array name="entries_list_codec">
+        <item>AMR</item>
+        <item>WAV</item>
+    </string-array>
+    <string-array name="entries_value_list_codec">
+        <item>AMR</item>
+        <item>WAV</item>
+    </string-array>
+</resources>

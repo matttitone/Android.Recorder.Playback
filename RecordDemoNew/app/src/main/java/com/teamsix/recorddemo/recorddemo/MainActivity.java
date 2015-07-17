@@ -2,6 +2,7 @@ package com.teamsix.recorddemo.recorddemo;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Environment;
@@ -35,8 +36,8 @@ public class MainActivity extends ActionBarActivity {
     //controlers
     private Button startRecord;
     private Button stopRecord;
-    private Button pauseRecord;
     private Button showRecordList;
+    private Button bBackground;
     private CheckBox checkSDCard;
     private TextView state;
 
@@ -60,21 +61,20 @@ public class MainActivity extends ActionBarActivity {
         //bind onclick listener
         startRecord.setOnClickListener(new startRecordListener());
 
-        // Pause the record
-        pauseRecord = (Button)findViewById(R.id.pauseRecord);
-        //bind onclick listener
-        pauseRecord.setOnClickListener(new pauseListener());
 
         // Stop Record
         stopRecord = (Button)findViewById(R.id.stopRecord);
         stopRecord.setOnClickListener(new stopRecordListener());
+        stopRecord.setVisibility(View.INVISIBLE);
 
         // Show Record List
         showRecordList = (Button)findViewById(R.id.showRecordList);
         showRecordList.setOnClickListener(new showRecordListListener());
 
+        bBackground = (Button)findViewById(R.id.bBackground);
+
         // check for store sd card
-        checkSDCard = (CheckBox)findViewById(R.id.checkSDCard);
+        //checkSDCard = (CheckBox)findViewById(R.id.checkSDCard);
 
         //State
         state = (TextView)findViewById(R.id.state);
@@ -101,6 +101,8 @@ public class MainActivity extends ActionBarActivity {
             return true;
         }
         if (id == R.id.action_setting) {
+            Intent intent = new Intent(this, SettingActivity.class);
+            startActivity(intent);
             return true;
         }
 
@@ -120,34 +122,41 @@ public class MainActivity extends ActionBarActivity {
         @Override
         public void onClick(View v) {
             // TODO Auto-generated method stub
-            try {
-                if(recordUtil.isRecord())
-                    return;
-                recordUtil = new AMRRecordUtil(getApplicationContext(),checkSDCard.isChecked());
-                recordUtil.startRecord();
-                setStateText(getResources().getString(R.string.stateRecord));
-            } catch (IOException e) {
-                Log.e(LOG_TAG,Log.getStackTraceString(e));
-                Toast.makeText(getApplicationContext(),"Start Record Failed!",Toast.LENGTH_SHORT).show();
-            }
-            /*
-            isPause = false;
-            inPause = false;
 
-            mRecorder = new MediaRecorder();
-            mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            mRecorder.setOutputFormat(MediaRecorder.OutputFormat.AMR_NB);
-            mRecorder.setOutputFile(FileName);
-            mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-            try {
-                mRecorder.prepare();
-            } catch (IOException e) {
-                Log.e(LOG_TAG, "prepare() failed");
+            if(!recordUtil.isRecord()) {
+                try {
+                    //recordUtil = new AMRRecordUtil(getApplicationContext(), checkSDCard.isChecked());
+                    recordUtil.startRecord();
+                    setStateText(getResources().getString(R.string.stateRecord));
+                    startRecord.setBackground(getResources().getDrawable(R.drawable.pauseicon));
+                    bBackground.setBackground(getResources().getDrawable(R.drawable.recordonicon));
+                    stopRecord.setVisibility(View.VISIBLE);
+                } catch (IOException e) {
+                    Log.e(LOG_TAG, Log.getStackTraceString(e));
+                    Toast.makeText(getApplicationContext(), "Start Record Failed!", Toast.LENGTH_SHORT).show();
+                }
             }
-            // set state
-            setStateText( getResources().getString(R.string.stateRecord));
-            mRecorder.start();
-            */
+            else {
+                try {
+                    recordUtil.Pause();
+                } catch (IOException e) {
+                    Log.e(LOG_TAG,Log.getStackTraceString(e));
+                    Toast.makeText(getApplicationContext(),"Pause Record Failed!",Toast.LENGTH_SHORT).show();
+                }
+                // set state
+                if(recordUtil.isPause())
+                {
+                    setStateText(getResources().getString(R.string.statePause));
+                    startRecord.setBackground(getResources().getDrawable(R.drawable.recordicon));
+                    bBackground.setBackground(getResources().getDrawable(R.drawable.recordofficon));
+                }
+                else
+                {
+                    setStateText(getResources().getString(R.string.stateRecord));
+                    startRecord.setBackground(getResources().getDrawable(R.drawable.pauseicon));
+                    bBackground.setBackground(getResources().getDrawable(R.drawable.recordonicon));
+                }
+            }
         }
 
     }
@@ -158,7 +167,7 @@ public class MainActivity extends ActionBarActivity {
         @Override
         public void onClick(View v) {
             Intent intent=new Intent();
-            intent.putExtra("isStoreToSDCard", checkSDCard.isChecked());
+            intent.putExtra("isStoreToSDCard", true);//checkSDCard.isChecked());
             intent.setClass(MainActivity.this, RecordListActivity.class);
             startActivity(intent);
         }
@@ -172,42 +181,10 @@ public class MainActivity extends ActionBarActivity {
             recordUtil.save();
             setStateText(getResources().getString(R.string.stateStopRecord));
             Toast.makeText(getApplicationContext(),"Save Record Successfully!",Toast.LENGTH_SHORT).show();
-            /*
-            isPause = false;
-            inPause = false;
-            mRecorder.stop();
-            mRecorder.release();
-            mRecorder = null;
-            // set state
-            setStateText( getResources().getString(R.string.stateStopRecord));
-            */
-        }
+            stopRecord.setVisibility(View.INVISIBLE);
+            startRecord.setBackground(getResources().getDrawable(R.drawable.recordicon));
+            bBackground.setBackground(getResources().getDrawable(R.drawable.recordofficon));
 
-    }
-
-
-    //pause listener
-    class pauseListener implements View.OnClickListener {
-
-        @Override
-        public void onClick(View v) {
-            try {
-                if(recordUtil.isRecord() == false)
-                    return;
-                recordUtil.Pause();
-            } catch (IOException e) {
-                Log.e(LOG_TAG,Log.getStackTraceString(e));
-                Toast.makeText(getApplicationContext(),"Pause Record Failed!",Toast.LENGTH_SHORT).show();
-            }
-            // set state
-            if(recordUtil.isPause())
-            {
-                setStateText(getResources().getString(R.string.statePause));
-            }
-            else
-            {
-                setStateText(getResources().getString(R.string.stateRecord));
-            }
         }
 
     }

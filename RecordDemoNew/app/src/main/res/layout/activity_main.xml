@@ -10,34 +10,40 @@
         android:id="@+id/state" />
 
     <Button
-        android:id="@+id/startRecord"
-        android:text="@string/startRecord"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        />
-    <Button
-        android:id="@+id/pauseRecord"
-        android:text="@string/pauseRecord"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        />
-    <Button
-        android:id="@+id/stopRecord"
-        android:text="@string/stopRecord"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        />
-    <Button
         android:id="@+id/showRecordList"
         android:text="@string/showList"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         />
 
-    <CheckBox
+    <Button
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/checkSD"
-        android:id="@+id/checkSDCard" />
+        android:layout_height="351dp"
+        android:id="@+id/bBackground"
+        android:background="@drawable/recordofficon" />
+
+    <RelativeLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <Button
+            android:id="@+id/startRecord"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/recordicon"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="10dp" />
+
+        <Button
+            android:id="@+id/stopRecord"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/stopicon"
+            android:layout_alignTop="@+id/startRecord"
+            android:layout_toStartOf="@+id/startRecord"
+            android:layout_marginEnd="44dp" />
+    </RelativeLayout>
 
 </LinearLayout>
