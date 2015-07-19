@@ -44,7 +44,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
     private ListView lv;  // listview
     private MyAdapter mAdapter;
-    private ArrayList<String> list; // string of the data
+    private ArrayList<Record> list; // record list
     private Button btnPlay;
     private Button btnPause;
     private Button btnStop;
@@ -64,6 +64,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     private boolean isPause = false;   // whether we are paused
 
     private String searchKeyword = ""; // the search keyword
+    private boolean isSearchClicked = false; // to ensure the search close will not effect the search function
 
     @Override
     public void onPauseSignal() {
@@ -110,7 +111,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         btnInfo = (Button)rlLayout.findViewById(R.id.btnInfo);
         btnInfo.setOnClickListener(new onInfoListener());
 
-        list = new ArrayList<String>();
+        list = new ArrayList<Record>();
         isMulChoice = false;
 
 
@@ -147,19 +148,19 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                     // stop the record
                     if(searchKeyword.equals("") == false) // click from the search function
                     {
+                        isSearchClicked = true; // so we will ignore the next "" search key
                         // save the file name
-                        String selectedFileName = list.get(position);
+                        String selectedFileName = list.get(position).getName();
                         btnReturn.performClick();
                         // find the position of selected file
                         for(int i = 0; i < list.size(); i++)
                         {
-                            if(list.get(i).equals(selectedFileName)) {
+                            if(list.get(i).getName().equals(selectedFileName)) {
                                 mAdapter.setPos(i);
                                 lv.setSelection(i);
                                 break;
                             }
                         }
-
                         //dataChanged();
                         mAdapter.notifyDataSetChanged();
                         itemStateChanged(1); // single choice
@@ -175,6 +176,9 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                             MyAdapter.setPos(position);
                             itemStateChanged(1); // single choice
                             mAdapter.notifyDataSetChanged();
+                            btnRename.setVisibility(View.VISIBLE);
+                            btnPlay.setVisibility(View.VISIBLE);
+                            btnInfo.setVisibility(View.VISIBLE);
                         }
                     }
                     //Toast.makeText(getApplicationContext(),"click" + position,Toast.LENGTH_SHORT).show();
@@ -239,8 +243,10 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         initData("");
     }
     private void initData(String keyword) {
-        list = null;
-        list = new ArrayList<>();
+        if(list == null)
+            list = new ArrayList<>();
+        else
+            list.clear();
 
         File file = new File(FileUtil.getRecordFolderPath(getActivity().getApplicationContext(),isStoreToSDCard));
         try
@@ -256,10 +262,10 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                         //mmr.setDataSource(files[j].getAbsolutePath());
                         //mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
                         String fileName = files[j].getName();
-                        if(keyword.equals("") == false && fileName.indexOf(keyword) >= 0)
-                            list.add(files[j].getName());
-                        else if(keyword.equals(""))
-                            list.add(files[j].getName());
+                        if((keyword.equals("") == false && fileName.indexOf(keyword) >= 0) || keyword.equals("")) {
+                            Record record = new Record(fileName,"","","",true);
+                            list.add(record);
+                        }
                     }
                 }
             }
@@ -269,41 +275,6 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
         }
     }
-
-
-    // ˢ��listview��TextView����ʾ
-//    private void dataChanged() {
-//        if(isMulChoice == false)
-//        {
-//            // set all buttons invisible
-//            if (MyAdapter.getPos() == -1) {
-//                btnFirst.setVisibility(View.INVISIBLE);
-//                btnSecond.setVisibility(View.INVISIBLE);
-//                btnThird.setVisibility(View.INVISIBLE);
-//                itemStateChanged(0); // nothing
-//            }
-//            else {
-//                btnFirst.setVisibility(View.VISIBLE);
-//                btnSecond.setVisibility(View.VISIBLE);
-//                btnThird.setVisibility(View.VISIBLE);
-//                itemStateChanged(1); // single choice
-//            }
-//            tv_show.setVisibility(View.INVISIBLE);
-//            mAdapter.setMulChoice(false);
-//        }
-//        else
-//        {
-//            btnFirst.setVisibility(View.VISIBLE);
-//            btnSecond.setVisibility(View.VISIBLE);
-//            btnThird.setVisibility(View.INVISIBLE);
-//            tv_show.setVisibility(View.VISIBLE);
-//            mAdapter.setMulChoice(true);
-//            itemStateChanged(2); // multi choice
-//        }
-//        mAdapter.notifyDataSetChanged();
-//
-//        tv_show.setText("select " + checkNum + " item(s)");
-//    }
 
     // item state was changed,so let the container know
     private void itemStateChanged(int state)
@@ -338,7 +309,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                 if(isMulChoice == false) // just delete the file
                 {
                     try {
-                        File file = new File(dir + "/" + list.get(mAdapter.getPos()));
+                        File file = new File(dir + "/" + list.get(mAdapter.getPos()).getName());
                         if (!file.delete()) {
                             isSuccessfulDel = false;
                         }
@@ -355,8 +326,8 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                         if (isSelected.get(i) == false) {
                             continue;
                         }
-                        File file = new File(dir + "/" + list.get(i));
-                        System.out.println(dir + list.get(i));
+                        File file = new File(dir + "/" + list.get(i).getName());
+                        System.out.println(dir + list.get(i).getName());
                         if (!file.delete()) {
                             isSuccessfulDel = false;
                         }
@@ -394,8 +365,9 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
     @Override
     public void onSearchFile(String keyword) {
-        if(searchKeyword.equals("") == false && keyword.equals("")) // cancel the search function
+        if(isSearchClicked && keyword.equals("")) // cancel the search function
         {
+            isSearchClicked = false;
             searchKeyword = keyword;
             return;
         }
@@ -432,7 +404,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                 btnDelete.setVisibility(View.INVISIBLE);
                 btnReturn.setVisibility(View.INVISIBLE);
                 // get the selected record path
-                String filePath = dir + "/" + list.get(MyAdapter.getPos());
+                String filePath = dir + "/" + list.get(MyAdapter.getPos()).getName();
                 try {
                     mMediaPlayer = new MediaPlayer();
                     mMediaPlayer.setDataSource(getActivity().getApplicationContext(), Uri.parse(filePath));
@@ -524,7 +496,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         }
     }
 
-    // pause function
+    // rename function
     public class onRenameListener implements View.OnClickListener
     {
         @Override
@@ -563,7 +535,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
             final EditText input = new EditText(getActivity().getApplicationContext());
             input.setFilters(new InputFilter[]{filter});
             try {
-                input.setText(list.get(MyAdapter.getPos()).toCharArray(), 0, list.get(MyAdapter.getPos()).lastIndexOf("."));
+                input.setText(list.get(MyAdapter.getPos()).getName().toCharArray(), 0, list.get(MyAdapter.getPos()).getName().lastIndexOf("."));
             }
             catch(Exception e)
             {
@@ -581,7 +553,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                     if (input.getText().toString().equals("")) {
                         Toast.makeText(getActivity().getApplicationContext(), "Please enter a name for the file", Toast.LENGTH_LONG);
                     } else {
-                        File from = new File(dir + "/" + list.get(MyAdapter.getPos()));
+                        File from = new File(dir + "/" + list.get(MyAdapter.getPos()).getName());
                         // get the extension of the record file
                         String suffix = "";
                         try {
@@ -641,9 +613,9 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
             isMulChoice = false;
             checkNum = 0;
             // change the button visiblity
-            btnRename.setVisibility(View.VISIBLE);
-            btnPlay.setVisibility(View.VISIBLE);
-            btnInfo.setVisibility(View.VISIBLE);
+            btnRename.setVisibility(View.INVISIBLE);
+            btnPlay.setVisibility(View.INVISIBLE);
+            btnInfo.setVisibility(View.INVISIBLE);
             btnStop.setVisibility(View.INVISIBLE);
             btnPause.setVisibility(View.INVISIBLE);
             btnDelete.setVisibility(View.INVISIBLE);

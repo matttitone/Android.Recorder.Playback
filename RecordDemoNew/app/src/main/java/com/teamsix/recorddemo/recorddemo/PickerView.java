@@ -28,7 +28,6 @@ import android.view.View;
  */
 public class PickerView extends View
 {
-
     public static final String TAG = "PickerView";
     /**
      * text之间间距和minTextSize之比

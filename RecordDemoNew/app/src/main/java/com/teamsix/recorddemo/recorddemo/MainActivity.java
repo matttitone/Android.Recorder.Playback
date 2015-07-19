@@ -42,9 +42,9 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 fragmentCount = position;
                 invalidateOptionsMenu();
-                if (fragmentChangeListener != null && position == 0) {
-                    fragmentChangeListener.onPauseSignal();
-                }
+//                if (fragmentChangeListener != null && position == 0) {
+//                    fragmentChangeListener.onPauseSignal();
+//                }
             }
 
             @Override
@@ -81,6 +81,7 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
 
                 MenuItem searchItem=menu.findItem(R.id.action_search);
                 final SearchView searchView=(SearchView) MenuItemCompat.getActionView(searchItem);
+
                 searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener()
                 {
 
@@ -141,7 +142,7 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
         }
         if (id == R.id.action_search)
         {
-            Toast.makeText(getApplicationContext(),"click",Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getApplicationContext(),"click",Toast.LENGTH_SHORT).show();
             return false;
         }
         return false;

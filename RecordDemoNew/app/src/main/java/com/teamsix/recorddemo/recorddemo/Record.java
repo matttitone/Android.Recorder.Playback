@@ -6,17 +6,21 @@ package com.teamsix.recorddemo.recorddemo;
 public class Record
 {
     private String name;   // the name of the record
-    private int length;   // the length of the record
+    private String length;   // the length of the record
+    private String size;   // the size of the record
     private String date;   // the date which the record was created
+    private boolean isStoredSD; // whether the record was stored in sdCard
 
     public Record()
     {
     }
 
-    public Record(String name,int len,String date) {
+    public Record(String name,String length,String date,String size,boolean isStoredSD) {
         this.name = name;
-        this.length = len;
+        this.length = length;
         this.date = date;
+        this.size = size;
+        this.isStoredSD = isStoredSD;
     }
 
     public String getName() {
@@ -27,12 +31,20 @@ public class Record
         this.name = name;
     }
 
-    public int getLength() {
+    public String getLength() {
         return length;
     }
 
-    public void setLength(int length) {
+    public void setLength(String length) {
         this.length = length;
+    }
+
+    public String getSize() {
+        return size;
+    }
+
+    public void setSize(String size) {
+        this.size = size;
     }
 
     public String getDate() {
@@ -42,6 +54,11 @@ public class Record
     public void setDate(String date) {
         this.date = date;
     }
+    public boolean isStoredSD() {
+        return isStoredSD;
+    }
 
-
+    public void setIsStoredSD(boolean isStoredSD) {
+        this.isStoredSD = isStoredSD;
+    }
 }

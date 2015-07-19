@@ -44,7 +44,13 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
         SettingUtil settingUtil = new SettingUtil(getActivity().getApplicationContext());
         int length = settingUtil.getMaxHour()*3600+settingUtil.getMaxMinute()*60+settingUtil.getMaxSecond();
         //recordUtil = new AMRRecordUtil(getActivity().getApplicationContext(),settingUtil.getStoreInSDCard(),length);
-        recordUtil = new WAVRecordUtil(getActivity().getApplicationContext(),settingUtil.getStoreInSDCard(),length);
+        String type = new SettingUtil(getActivity().getApplicationContext()).getRecordFormat();
+        if(type.endsWith("WAV")) {
+            recordUtil = new WAVRecordUtil(getActivity().getApplicationContext(), settingUtil.getStoreInSDCard(), length);
+        } else
+        {
+            recordUtil = new AMRRecordUtil(getActivity().getApplicationContext(), settingUtil.getStoreInSDCard(), length);
+        }
         recordUtil.setOverMaxRecordTimeListener(this);
 
     }

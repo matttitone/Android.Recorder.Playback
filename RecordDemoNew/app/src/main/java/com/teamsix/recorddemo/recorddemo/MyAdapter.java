@@ -16,7 +16,7 @@ import java.util.HashMap;
  */
 public class MyAdapter extends BaseAdapter {
     // ������ݵ�list
-    private ArrayList<String> list;
+    private ArrayList<Record> list;
 
     // ��������CheckBox��ѡ�����
     private static HashMap<Integer,Boolean> isSelected;
@@ -32,7 +32,7 @@ public class MyAdapter extends BaseAdapter {
     private static int pos;
 
     // constructor
-    public MyAdapter(ArrayList<String> list,Context context)
+    public MyAdapter(ArrayList<Record> list,Context context)
     {
         this.context = context;
         this.list = list;
@@ -99,7 +99,7 @@ public class MyAdapter extends BaseAdapter {
 
 
         // ����list��TextView����ʾ
-        holder.tv.setText(list.get(position));
+        holder.tv.setText(list.get(position).getName());
         holder.tv.setTextColor(-16777216);
         //Position
         if (pos == position) {
