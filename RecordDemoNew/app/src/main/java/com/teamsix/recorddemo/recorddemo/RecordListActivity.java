@@ -45,9 +45,13 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     private ListView lv;  // listview
     private MyAdapter mAdapter;
     private ArrayList<String> list; // string of the data
-    private Button btnFirst;// return button
-    private Button btnSecond;
-    private Button btnThird;
+    private Button btnPlay;
+    private Button btnPause;
+    private Button btnStop;
+    private Button btnRename;
+    private Button btnInfo;
+    private Button btnDelete;
+    private Button btnReturn;
     private int checkNum; // total selected number
     private TextView tv_show; // show the selected number
     private boolean isMulChoice; // whether we are in mulchoice mode
@@ -63,23 +67,12 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
     @Override
     public void onPauseSignal() {
-        if(isPlaying && isPause == false) {
-            curPlayTime = mMediaPlayer.getCurrentPosition();
-            mMediaPlayer.pause();
-            // change the drawable
-            Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_play);
-            btnSecond.setBackground(secondDrawable);
-            isPause = true;
-        }
+        btnPause.performClick();
     }
 
     @Override
     public void onUpdateDataSignal() {
-        initData();
-        mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
-        lv.setAdapter(mAdapter);
-        mAdapter.notifyDataSetChanged();
-        checkNum = 0;
+        refreshList();
     }
 
     @Override
@@ -98,239 +91,32 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         // Replace LinearLayout by the type of the root element of the layout you're trying to load
         RelativeLayout rlLayout    = (RelativeLayout)    inflater.inflate(R.layout.fragment_record, container, false);
         super.onCreate(savedInstanceState);
-        // get whether we are now store the records in the sdcard
-        //isStoreToSDCard = intent.getBooleanExtra("isStoreToSDCard",false);
         lv = (ListView)rlLayout.findViewById(R.id.listView);
-        btnFirst = (Button)rlLayout.findViewById(R.id.btnFirst);
-        btnSecond = (Button)rlLayout.findViewById(R.id.btnSecond);
-        btnThird = (Button)rlLayout.findViewById(R.id.btnThird);
+
         tv_show = (TextView)rlLayout.findViewById(R.id.tvNumber);
+
+        btnPlay = (Button)rlLayout.findViewById(R.id.btnPlay);
+        btnPlay.setOnClickListener(new onPlayListener());
+        btnPause = (Button)rlLayout.findViewById(R.id.btnPause);
+        btnPause.setOnClickListener(new onPauseListener());
+        btnStop = (Button)rlLayout.findViewById(R.id.btnStop);
+        btnStop.setOnClickListener(new onStopListener());
+        btnRename = (Button)rlLayout.findViewById(R.id.btnRename);
+        btnRename.setOnClickListener(new onRenameListener());
+        btnReturn = (Button)rlLayout.findViewById(R.id.btnReturn);
+        btnReturn.setOnClickListener(new onReturnListener());
+        btnDelete = (Button)rlLayout.findViewById(R.id.btnDelete);
+        btnDelete.setOnClickListener(new onDeleteListener());
+        btnInfo = (Button)rlLayout.findViewById(R.id.btnInfo);
+        btnInfo.setOnClickListener(new onInfoListener());
 
         list = new ArrayList<String>();
         isMulChoice = false;
 
-        initData();
 
         // registe the pausecontrol
         ((OnRecordItemStateChangedListener) getActivity()).setOnFragmentChangeListener(this);
         ((OnRecordItemStateChangedListener) getActivity()).setOnActionOperationListener(this);
-
-        mAdapter = new MyAdapter(list,super.getActivity());
-        MyAdapter.setPos(-1);
-        lv.setAdapter(mAdapter);
-
-        // cancel the mulchoice
-        btnFirst.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(isMulChoice == true) // now that will be the return function
-                {
-                    isMulChoice = false;
-                    checkNum = 0;
-                    // change the selector of the buttons
-                    Drawable firstDrawable = getResources().getDrawable(R.drawable.selector_icon_rename);
-                    btnFirst.setBackground(firstDrawable);
-                    Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_play);
-                    btnSecond.setBackground(secondDrawable);
-                    MyAdapter.setPos(-1);
-                    dataChanged();
-                }
-                else if(isMulChoice == false && isPlaying) // now it will be the stop function
-                {
-                    stopPlayRecord();
-                }
-                else // now that will be the rename function
-                {
-                    final AlertDialog.Builder builderR = new AlertDialog.Builder(RecordListActivity.super.getActivity());
-                    builderR.setTitle("Rename file");
-                    builderR.setCancelable(true);
-
-                    InputFilter filter = new InputFilter() {
-                        @Override
-                        public CharSequence filter(CharSequence source, int start, int end,
-                                                   Spanned dest, int dstart, int dend) {
-
-                            if (source instanceof SpannableStringBuilder) {
-                                SpannableStringBuilder sourceAsSpannableBuilder = (SpannableStringBuilder)source;
-                                for (int i = end - 1; i >= start; i--) {
-                                    char currentChar = source.charAt(i);
-                                    if (!Character.isLetterOrDigit(currentChar)) {
-                                        Toast.makeText(builderR.getContext(), "Only Characters or Digits allowed!", Toast.LENGTH_LONG);
-                                        sourceAsSpannableBuilder.delete(i, i+1);
-                                    }
-                                }
-                                return source;
-                            } else {
-                                StringBuilder filteredStringBuilder = new StringBuilder();
-                                for (int i = start; i < end; i++) {
-                                    char currentChar = source.charAt(i);
-                                    if (Character.isLetterOrDigit(currentChar)) {
-                                        filteredStringBuilder.append(currentChar);
-                                    }
-                                }
-                                return filteredStringBuilder.toString();
-                            }
-                        }
-                    };
-                    final EditText input = new EditText(getActivity().getApplicationContext());
-                    input.setFilters(new InputFilter[]{filter});
-                    try {
-                        input.setText(list.get(MyAdapter.getPos()).toCharArray(), 0, list.get(MyAdapter.getPos()).lastIndexOf("."));
-                    }
-                    catch(Exception e)
-                    {
-                        Log.e(LOG_TAG,Log.getStackTraceString(e));
-                        input.setText("");
-                    }
-
-                    input.setTextColor(-16777216);
-                    builderR.setView(input);
-
-                    builderR.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
-
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            if (input.getText().toString().equals("")) {
-                                Toast.makeText(getActivity().getApplicationContext(), "Please enter a name for the file", Toast.LENGTH_LONG);
-                            } else {
-                                File from = new File(dir + "/" + list.get(MyAdapter.getPos()));
-                                // get the extension of the record file
-                                String suffix = "";
-                                try {
-                                    suffix = from.getName().substring(from.getName().lastIndexOf("."), from.getName().length());
-                                } catch (Exception e) {
-
-                                }
-                                // get the filename with extension
-                                String fileName = input.getText().toString();
-                                // get all the name before '.'
-                                if (!fileName.endsWith(suffix)) {
-                                    fileName = fileName + suffix;
-                                }
-                                File to = new File(dir + "/" + fileName);
-
-                                if (from.renameTo(to)) {
-                                    System.out.println("The position is " + MyAdapter.getPos());
-                                    /** I have to do it here, don't I? How should I update the listview with the renamed file name?     **/
-                                    initData();
-                                    mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
-                                    lv.setAdapter(mAdapter);
-                                    mAdapter.notifyDataSetChanged();
-                                    checkNum = 0;
-                                }
-                            }
-                        }
-                    });
-
-                    builderR.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    });
-
-                    AlertDialog alertR = builderR.create();
-                    alertR.show();
-
-
-                    dataChanged();
-                }
-            }
-        });
-
-        // play and delete function
-        btnSecond.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(isMulChoice == false) // now that will be the play function
-                {
-                    //Toast.makeText(getApplicationContext(),"We will play the records now...",Toast.LENGTH_SHORT).show();
-                    if(isPlaying == false) // start play a record
-                    {
-                        stopPlayRecord();
-                        isPlaying = true;
-                        curPlayTime = 0;
-                        // set the visiblity of buttons
-                        btnFirst.setVisibility(View.VISIBLE);
-                        btnThird.setVisibility(View.INVISIBLE);
-                        // set the selector of the button
-                        Drawable fristDrawable = getResources().getDrawable(R.drawable.selector_icon_stop);
-                        btnFirst.setBackground(fristDrawable);
-                        Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_pause);
-                        btnSecond.setBackground(secondDrawable);
-                        // get the selected record path
-                        String filePath = dir + "/" + list.get(MyAdapter.getPos());
-                        try {
-                            mMediaPlayer = new MediaPlayer();
-                            mMediaPlayer.setDataSource(getActivity().getApplicationContext(), Uri.parse(filePath));
-                            mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                                @Override
-                                public void onCompletion(MediaPlayer mp) {
-                                    isPlaying = false;
-                                    isPause = false;
-                                    Drawable firstDrawable = getResources().getDrawable(R.drawable.selector_icon_rename);
-                                    btnFirst.setBackground(firstDrawable);
-                                    Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_play);
-                                    btnSecond.setBackground(secondDrawable);
-                                    mMediaPlayer = null;
-                                    btnFirst.setVisibility(View.VISIBLE);
-                                    btnThird.setVisibility(View.VISIBLE);
-                                }
-                            });
-                            mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                                @Override
-                                public void onPrepared(MediaPlayer mp) {
-                                    mMediaPlayer.start();
-                                }
-                            });
-                            mMediaPlayer.prepareAsync();
-
-                        } catch (IllegalStateException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-                    }
-                    else
-                    {
-                        if(isPause == true) {
-                            isPause = false;
-                            if (mMediaPlayer != null) {
-                                // change the drawable
-                                Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_pause);
-                                btnSecond.setBackground(secondDrawable);
-                                mMediaPlayer.seekTo(curPlayTime);
-                                mMediaPlayer.start();
-                            }
-                        }
-                        else
-                        {
-                            curPlayTime = mMediaPlayer.getCurrentPosition();
-                            mMediaPlayer.pause();
-                            // change the drawable
-                            Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_play);
-                            btnSecond.setBackground(secondDrawable);
-                            isPause = true;
-                        }
-                    }
-                }
-                else // now that will be the delete function
-                {
-                    deleteFile();
-                }
-            }
-        });
-
-        // detail function
-        btnThird.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Toast.makeText(getActivity().getApplicationContext(), "We will show the records detail...", Toast.LENGTH_SHORT).show();
-            }
-        });
 
         // ��listView�ļ�����
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -338,9 +124,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (isMulChoice) {
                     ViewHolder holder = (ViewHolder) view.getTag();
-
                     holder.cb.toggle();
-
                     MyAdapter.getIsSelected().put(position, holder.cb.isChecked());
 
                     if (holder.cb.isChecked() == true) {
@@ -350,44 +134,47 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                     }
 
                     tv_show.setText("select " + checkNum + " item(s)");
-                    if (checkNum == 0)
-                        btnFirst.performClick();
+                    if (checkNum == 0) {
+                        btnReturn.performClick();
+                        return;
+                    }
+                    mAdapter.setMulChoice(true);
+                    mAdapter.notifyDataSetChanged();
                 } else // not multichoice
                 {
+                    if(isPlaying)
+                        stopPlayRecord();
                     // stop the record
                     if(searchKeyword.equals("") == false) // click from the search function
                     {
-
-                        stopPlayRecord();
                         // save the file name
                         String selectedFileName = list.get(position);
-                        initData();
-
-                        mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
-                        lv.setAdapter(mAdapter);
+                        btnReturn.performClick();
                         // find the position of selected file
                         for(int i = 0; i < list.size(); i++)
                         {
-                            if(list.get(i).equals(selectedFileName))
-                            {
+                            if(list.get(i).equals(selectedFileName)) {
                                 mAdapter.setPos(i);
                                 lv.setSelection(i);
+                                break;
                             }
                         }
-                        dataChanged();
+
+                        //dataChanged();
+                        mAdapter.notifyDataSetChanged();
+                        itemStateChanged(1); // single choice
                     }
                     else
                     {
-                        stopPlayRecord();
                         if(position == MyAdapter.getPos()) // cancel
                         {
-                            isMulChoice = true;
-                            btnFirst.performClick();
+                            btnReturn.performClick();
                         }
                         else
                         {
                             MyAdapter.setPos(position);
-                            dataChanged();
+                            itemStateChanged(1); // single choice
+                            mAdapter.notifyDataSetChanged();
                         }
                     }
                     //Toast.makeText(getApplicationContext(),"click" + position,Toast.LENGTH_SHORT).show();
@@ -398,24 +185,34 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                stopPlayRecord();
+                if(isPlaying)
+                    stopPlayRecord();
                 isMulChoice = true;
-                // change the selector of the buttons
-                Drawable firstDrawable = getResources().getDrawable(R.drawable.selector_icon_return);
-                btnFirst.setBackground(firstDrawable);
-                Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_delete);
-                btnSecond.setBackground(secondDrawable);
+                checkNum = 0;
+                // change the button visiblity
+                btnRename.setVisibility(View.INVISIBLE);
+                btnPlay.setVisibility(View.INVISIBLE);
+                btnInfo.setVisibility(View.INVISIBLE);
+                btnStop.setVisibility(View.INVISIBLE);
+                btnPause.setVisibility(View.INVISIBLE);
+                btnDelete.setVisibility(View.VISIBLE);
+                btnReturn.setVisibility(View.VISIBLE);
 
-                MyAdapter.setPos(-1);
                 for (int i = 0; i < list.size(); i++) {
                     MyAdapter.getIsSelected().put(i, false);
                 }
-                dataChanged();
+                // notify the adapter
+                MyAdapter.setPos(-1);
+                tv_show.setVisibility(View.INVISIBLE);
+                mAdapter.setMulChoice(false);
+                mAdapter.notifyDataSetChanged();
+                // notify the listener
+                itemStateChanged(2); // mutichoice
                 return false;
             }
         });
-
-        dataChanged();
+        refreshList();
+        btnReturn.performClick();
         return rlLayout;
     }
 
@@ -427,18 +224,17 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
             isPause = false;
             isPlaying = false;
             mMediaPlayer = null;
-            Drawable firstDrawable = getResources().getDrawable(R.drawable.selector_icon_rename);
-            btnFirst.setBackground(firstDrawable);
-            Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_play);
-            btnSecond.setBackground(secondDrawable);
         }
-        // set the visible of button
-        btnFirst.setVisibility(View.VISIBLE);
-        btnThird.setVisibility(View.VISIBLE);
+        btnRename.setVisibility(View.VISIBLE);
+        btnPlay.setVisibility(View.VISIBLE);
+        btnInfo.setVisibility(View.VISIBLE);
+        btnStop.setVisibility(View.INVISIBLE);
+        btnPause.setVisibility(View.INVISIBLE);
+        btnDelete.setVisibility(View.INVISIBLE);
+        btnReturn.setVisibility(View.INVISIBLE);
     }
 
 
-    // ��ʼ�
     private void initData() {
         initData("");
     }
@@ -446,35 +242,19 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         list = null;
         list = new ArrayList<>();
 
-//        String selection = MediaStore.Audio.Media.DATA +" like " + "'" + FileUtil.getRecordFolderPath(getActivity().getApplicationContext(),isStoreToSDCard) + "%'";
-//        Cursor cursor = getActivity().getApplicationContext().getContentResolver().query(
-//                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, selection, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
-//        if (cursor != null) {
-//            cursor.moveToFirst();
-//            int durationIndex = cursor
-//                    .getColumnIndex(MediaStore.Audio.Media.DURATION);
-//            int dataIndex = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
-//            int audioSum = cursor.getCount(); // all count
-//            Log.e(LOG_TAG, "audioSum:" + audioSum);
-//            for (int counter = 0; counter < audioSum; counter++) {
-//                list.add(cursor.getString(dataIndex) + cursor.getInt(durationIndex));
-//                cursor.moveToNext();
-//            }
-//            cursor.close();
-//        }
         File file = new File(FileUtil.getRecordFolderPath(getActivity().getApplicationContext(),isStoreToSDCard));
         try
         {
             File[] files = file.listFiles();
             if (files.length > 0)
             {
-                MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+                //MediaMetadataRetriever mmr = new MediaMetadataRetriever();
                 for (int j = 0; j < files.length; j++)
                 {
                     if (!files[j].isDirectory())
                     {
-                        mmr.setDataSource(files[j].getAbsolutePath());
-                        //list.add(files[j].getName() + "  " + mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                        //mmr.setDataSource(files[j].getAbsolutePath());
+                        //mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
                         String fileName = files[j].getName();
                         if(keyword.equals("") == false && fileName.indexOf(keyword) >= 0)
                             list.add(files[j].getName());
@@ -492,38 +272,38 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
 
     // ˢ��listview��TextView����ʾ
-    private void dataChanged() {
-        if(isMulChoice == false)
-        {
-            // set all buttons invisible
-            if (MyAdapter.getPos() == -1) {
-                btnFirst.setVisibility(View.INVISIBLE);
-                btnSecond.setVisibility(View.INVISIBLE);
-                btnThird.setVisibility(View.INVISIBLE);
-                itemStateChanged(0); // nothing
-            }
-            else {
-                btnFirst.setVisibility(View.VISIBLE);
-                btnSecond.setVisibility(View.VISIBLE);
-                btnThird.setVisibility(View.VISIBLE);
-                itemStateChanged(1); // single choice
-            }
-            tv_show.setVisibility(View.INVISIBLE);
-            mAdapter.setMulChoice(false);
-        }
-        else
-        {
-            btnFirst.setVisibility(View.VISIBLE);
-            btnSecond.setVisibility(View.VISIBLE);
-            btnThird.setVisibility(View.INVISIBLE);
-            tv_show.setVisibility(View.VISIBLE);
-            mAdapter.setMulChoice(true);
-            itemStateChanged(2); // multi choice
-        }
-        mAdapter.notifyDataSetChanged();
-
-        tv_show.setText("select " + checkNum + " item(s)");
-    }
+//    private void dataChanged() {
+//        if(isMulChoice == false)
+//        {
+//            // set all buttons invisible
+//            if (MyAdapter.getPos() == -1) {
+//                btnFirst.setVisibility(View.INVISIBLE);
+//                btnSecond.setVisibility(View.INVISIBLE);
+//                btnThird.setVisibility(View.INVISIBLE);
+//                itemStateChanged(0); // nothing
+//            }
+//            else {
+//                btnFirst.setVisibility(View.VISIBLE);
+//                btnSecond.setVisibility(View.VISIBLE);
+//                btnThird.setVisibility(View.VISIBLE);
+//                itemStateChanged(1); // single choice
+//            }
+//            tv_show.setVisibility(View.INVISIBLE);
+//            mAdapter.setMulChoice(false);
+//        }
+//        else
+//        {
+//            btnFirst.setVisibility(View.VISIBLE);
+//            btnSecond.setVisibility(View.VISIBLE);
+//            btnThird.setVisibility(View.INVISIBLE);
+//            tv_show.setVisibility(View.VISIBLE);
+//            mAdapter.setMulChoice(true);
+//            itemStateChanged(2); // multi choice
+//        }
+//        mAdapter.notifyDataSetChanged();
+//
+//        tv_show.setText("select " + checkNum + " item(s)");
+//    }
 
     // item state was changed,so let the container know
     private void itemStateChanged(int state)
@@ -581,12 +361,18 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                             isSuccessfulDel = false;
                         }
                     }
-                    btnFirst.callOnClick();
+                    isMulChoice = false;
+                    checkNum = 0;
+                    // change the button visiblity
+                    btnRename.setVisibility(View.VISIBLE);
+                    btnPlay.setVisibility(View.VISIBLE);
+                    btnInfo.setVisibility(View.VISIBLE);
+                    btnStop.setVisibility(View.INVISIBLE);
+                    btnPause.setVisibility(View.INVISIBLE);
+                    btnDelete.setVisibility(View.INVISIBLE);
+                    btnReturn.setVisibility(View.INVISIBLE);
                 }
-                initData();
-                mAdapter = new MyAdapter(list,getActivity().getApplicationContext());
-                lv.setAdapter(mAdapter);
-                mAdapter.notifyDataSetChanged();
+                refreshList();
                 itemStateChanged(0);
                 if(isSuccessfulDel) {
                     Toast.makeText(getActivity().getApplicationContext(), "File Deleted", Toast.LENGTH_SHORT).show();
@@ -625,5 +411,278 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     @Override
     public void onShareFile() {
 
+    }
+
+    // play function
+    public class onPlayListener implements View.OnClickListener
+    {
+        @Override
+        public void onClick(View v) {
+            if(isPlaying == false) // start play a record
+            {
+                stopPlayRecord();
+                isPlaying = true;
+                curPlayTime = 0;
+                // set the visiblity of buttons
+                btnRename.setVisibility(View.INVISIBLE);
+                btnPlay.setVisibility(View.INVISIBLE);
+                btnInfo.setVisibility(View.INVISIBLE);
+                btnStop.setVisibility(View.VISIBLE);
+                btnPause.setVisibility(View.VISIBLE);
+                btnDelete.setVisibility(View.INVISIBLE);
+                btnReturn.setVisibility(View.INVISIBLE);
+                // get the selected record path
+                String filePath = dir + "/" + list.get(MyAdapter.getPos());
+                try {
+                    mMediaPlayer = new MediaPlayer();
+                    mMediaPlayer.setDataSource(getActivity().getApplicationContext(), Uri.parse(filePath));
+                    mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                        @Override
+                        public void onCompletion(MediaPlayer mp) {
+                            isPlaying = false;
+                            isPause = false;
+                            btnRename.setVisibility(View.VISIBLE);
+                            btnPlay.setVisibility(View.VISIBLE);
+                            btnInfo.setVisibility(View.VISIBLE);
+                            btnStop.setVisibility(View.INVISIBLE);
+                            btnPause.setVisibility(View.INVISIBLE);
+                            btnDelete.setVisibility(View.INVISIBLE);
+                            btnReturn.setVisibility(View.INVISIBLE);
+                            mMediaPlayer = null;
+                        }
+                    });
+                    mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                        @Override
+                        public void onPrepared(MediaPlayer mp) {
+                            mMediaPlayer.start();
+                        }
+                    });
+                    mMediaPlayer.prepareAsync();
+
+                } catch (IllegalStateException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            else // resume
+            {
+                if(isPause)
+                {
+                    isPause = false;
+                    if (mMediaPlayer != null) {
+                        // change the drawable
+                        btnRename.setVisibility(View.INVISIBLE);
+                        btnPlay.setVisibility(View.INVISIBLE);
+                        btnInfo.setVisibility(View.INVISIBLE);
+                        btnStop.setVisibility(View.VISIBLE);
+                        btnPause.setVisibility(View.VISIBLE);
+                        btnDelete.setVisibility(View.INVISIBLE);
+                        btnReturn.setVisibility(View.INVISIBLE);
+                        mMediaPlayer.seekTo(curPlayTime);
+                        mMediaPlayer.start();
+                    }
+                }
+            }
+        }
+    }
+
+    // pause function
+    public class onPauseListener implements View.OnClickListener
+    {
+        @Override
+        public void onClick(View v) {
+            if(isPlaying)
+            {
+                if(isPause == false) {
+                    curPlayTime = mMediaPlayer.getCurrentPosition();
+                    mMediaPlayer.pause();
+                    // change the drawable
+                    btnRename.setVisibility(View.INVISIBLE);
+                    btnPlay.setVisibility(View.VISIBLE);
+                    btnInfo.setVisibility(View.INVISIBLE);
+                    btnStop.setVisibility(View.VISIBLE);
+                    btnPause.setVisibility(View.INVISIBLE);
+                    btnDelete.setVisibility(View.INVISIBLE);
+                    btnReturn.setVisibility(View.INVISIBLE);
+                    isPause = true;
+                }
+
+            }
+        }
+    }
+
+    // stop function
+    public class onStopListener implements View.OnClickListener
+    {
+        @Override
+        public void onClick(View v) {
+            if(isPlaying)
+                stopPlayRecord();
+        }
+    }
+
+    // pause function
+    public class onRenameListener implements View.OnClickListener
+    {
+        @Override
+        public void onClick(View v) {
+            // build the rename dialog and then show
+            final AlertDialog.Builder builderR = new AlertDialog.Builder(RecordListActivity.super.getActivity());
+            builderR.setTitle("Rename file");
+            builderR.setCancelable(true);
+            // make sure the user can only input the character and digits
+            InputFilter filter = new InputFilter() {
+                @Override
+                public CharSequence filter(CharSequence source, int start, int end,
+                                           Spanned dest, int dstart, int dend) {
+                    if (source instanceof SpannableStringBuilder) {
+                        SpannableStringBuilder sourceAsSpannableBuilder = (SpannableStringBuilder)source;
+                        for (int i = end - 1; i >= start; i--) {
+                            char currentChar = source.charAt(i);
+                            if (!Character.isLetterOrDigit(currentChar)) {
+                                Toast.makeText(builderR.getContext(), "Only Characters or Digits allowed!", Toast.LENGTH_LONG);
+                                sourceAsSpannableBuilder.delete(i, i+1);
+                            }
+                        }
+                        return source;
+                    } else {
+                        StringBuilder filteredStringBuilder = new StringBuilder();
+                        for (int i = start; i < end; i++) {
+                            char currentChar = source.charAt(i);
+                            if (Character.isLetterOrDigit(currentChar)) {
+                                filteredStringBuilder.append(currentChar);
+                            }
+                        }
+                        return filteredStringBuilder.toString();
+                    }
+                }
+            };
+            final EditText input = new EditText(getActivity().getApplicationContext());
+            input.setFilters(new InputFilter[]{filter});
+            try {
+                input.setText(list.get(MyAdapter.getPos()).toCharArray(), 0, list.get(MyAdapter.getPos()).lastIndexOf("."));
+            }
+            catch(Exception e)
+            {
+                Log.e(LOG_TAG,Log.getStackTraceString(e));
+                input.setText("");
+            }
+
+            input.setTextColor(-16777216);
+            builderR.setView(input);
+
+            builderR.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
+
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    if (input.getText().toString().equals("")) {
+                        Toast.makeText(getActivity().getApplicationContext(), "Please enter a name for the file", Toast.LENGTH_LONG);
+                    } else {
+                        File from = new File(dir + "/" + list.get(MyAdapter.getPos()));
+                        // get the extension of the record file
+                        String suffix = "";
+                        try {
+                            suffix = from.getName().substring(from.getName().lastIndexOf("."), from.getName().length());
+                        } catch (Exception e) {
+
+                        }
+                        // get the filename with extension
+                        String fileName = input.getText().toString();
+                        // get all the name before '.'
+                        if (!fileName.endsWith(suffix)) {
+                            fileName = fileName + suffix;
+                        }
+                        File to = new File(dir + "/" + fileName);
+
+                        if (from.renameTo(to)) {
+                            System.out.println("The position is " + MyAdapter.getPos());
+                            /** I have to do it here, don't I? How should I update the listview with the renamed file name?     **/
+                            /** I think you are right.We will do it later*/
+                            refreshList();
+                        }
+                    }
+                }
+            });
+
+            builderR.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+
+            AlertDialog alertR = builderR.create();
+            alertR.show();
+
+            btnRename.setVisibility(View.VISIBLE);
+            btnPlay.setVisibility(View.VISIBLE);
+            btnInfo.setVisibility(View.VISIBLE);
+            btnStop.setVisibility(View.INVISIBLE);
+            btnPause.setVisibility(View.INVISIBLE);
+            btnDelete.setVisibility(View.INVISIBLE);
+            btnReturn.setVisibility(View.INVISIBLE);
+            // notify the adapter
+            tv_show.setVisibility(View.INVISIBLE);
+            mAdapter.setMulChoice(false);
+            // notify the listener
+            itemStateChanged(0); // nothing
+        }
+    }
+
+    // pause function
+    public class onReturnListener implements View.OnClickListener
+    {
+        @Override
+        public void onClick(View v) {
+            isMulChoice = false;
+            checkNum = 0;
+            // change the button visiblity
+            btnRename.setVisibility(View.VISIBLE);
+            btnPlay.setVisibility(View.VISIBLE);
+            btnInfo.setVisibility(View.VISIBLE);
+            btnStop.setVisibility(View.INVISIBLE);
+            btnPause.setVisibility(View.INVISIBLE);
+            btnDelete.setVisibility(View.INVISIBLE);
+            btnReturn.setVisibility(View.INVISIBLE);
+            // notify the adapter
+            MyAdapter.setPos(-1);
+            tv_show.setVisibility(View.INVISIBLE);
+            mAdapter.setMulChoice(false);
+            mAdapter.notifyDataSetChanged();
+            // notify the listener
+            itemStateChanged(0); // nothing
+        }
+    }
+
+    // pause function
+    public class onInfoListener implements View.OnClickListener
+    {
+        @Override
+        public void onClick(View v) {
+
+        }
+    }
+
+    // pause function
+    public class onDeleteListener implements View.OnClickListener
+    {
+        @Override
+        public void onClick(View v) {
+            deleteFile();
+        }
+    }
+
+    // reload the data
+    private void refreshList()
+    {
+        initData();
+        mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
+        lv.setAdapter(mAdapter);
+        mAdapter.notifyDataSetChanged();
+        checkNum = 0;
     }
 }

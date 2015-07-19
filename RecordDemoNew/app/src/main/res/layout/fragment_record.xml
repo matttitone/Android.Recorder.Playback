@@ -16,7 +16,25 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:background="@drawable/selector_icon_rename"
-        android:id="@+id/btnFirst"
+        android:id="@+id/btnRename"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginLeft="20dp"/>
+
+    <Button
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/selector_icon_stop"
+        android:id="@+id/btnStop"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginLeft="20dp"/>
+
+    <Button
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/selector_icon_return"
+        android:id="@+id/btnReturn"
         android:layout_alignParentBottom="true"
         android:layout_alignParentStart="true"
         android:layout_marginLeft="20dp"/>
@@ -26,18 +44,36 @@
     <Button
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:id="@+id/btnSecond"
+        android:id="@+id/btnPlay"
         android:background="@drawable/selector_icon_play"
-        android:layout_alignTop="@+id/btnFirst"
+        android:layout_alignTop="@+id/btnRename"
         android:layout_centerHorizontal="true"
         />
 
     <Button
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:id="@+id/btnThird"
+        android:id="@+id/btnPause"
+        android:background="@drawable/selector_icon_pause"
+        android:layout_alignTop="@+id/btnRename"
+        android:layout_centerHorizontal="true"
+        />
+
+    <Button
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:id="@+id/btnDelete"
+        android:background="@drawable/selector_icon_delete"
+        android:layout_alignTop="@+id/btnRename"
+        android:layout_centerHorizontal="true"
+        />
+
+    <Button
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:id="@+id/btnInfo"
         android:background="@drawable/selector_icon_info"
-        android:layout_alignTop="@+id/btnFirst"
+        android:layout_alignTop="@+id/btnRename"
         android:layout_alignParentEnd="true"
         android:layout_marginRight="20dp"
         />
@@ -48,6 +84,6 @@
         android:id="@+id/listView"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/tvNumber"
-        android:layout_above="@+id/btnFirst"
+        android:layout_above="@+id/btnRename"
         android:layout_alignParentEnd="true" />
 </RelativeLayout>
