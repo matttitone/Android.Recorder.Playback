@@ -1,26 +1,28 @@
 package com.teamsix.recorddemo.recorddemo;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
-import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.drawable.Drawable;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.support.v7.app.ActionBarActivity;
+import android.provider.MediaStore;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.text.InputFilter;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,8 +31,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+interface OnRecordItemStateChangedListener
+{
+    void onStateChange(int newState);
+    void setOnFragmentChangeListener(MainActivity.FragmentChangeListener listener);
+    void setOnActionOperationListener(ActionOperationListener listener);
+}
 
-public class RecordListActivity extends ActionBarActivity {
+public class RecordListActivity extends Fragment implements MainActivity.FragmentChangeListener,ActionOperationListener {
 
     private static final String LOG_TAG = "AudioRecordTest";
 
@@ -43,7 +51,7 @@ public class RecordListActivity extends ActionBarActivity {
     private int checkNum; // total selected number
     private TextView tv_show; // show the selected number
     private boolean isMulChoice; // whether we are in mulchoice mode
-    private boolean isStoreToSDCard = false; // whether we store the record on sd card
+    private boolean isStoreToSDCard = true; // whether we store the record on sd card
     private File dir;
 
     private MediaPlayer mMediaPlayer = null;
@@ -51,28 +59,64 @@ public class RecordListActivity extends ActionBarActivity {
     private boolean isPlaying = false; // whether we are playing records
     private boolean isPause = false;   // whether we are paused
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_record);
+    private String searchKeyword = ""; // the search keyword
 
+    @Override
+    public void onPauseSignal() {
+        if(isPlaying && isPause == false) {
+            curPlayTime = mMediaPlayer.getCurrentPosition();
+            mMediaPlayer.pause();
+            // change the drawable
+            Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_play);
+            btnSecond.setBackground(secondDrawable);
+            isPause = true;
+        }
+    }
+
+    @Override
+    public void onUpdateDataSignal() {
+        initData();
+        mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
+        lv.setAdapter(mAdapter);
+        mAdapter.notifyDataSetChanged();
+        checkNum = 0;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // get the max length of the record
+        SettingUtil settingUtil = new SettingUtil(getActivity().getApplicationContext());
+        isStoreToSDCard = settingUtil.getStoreInSDCard();
+        dir = new File(FileUtil.getRecordFolderPath(getActivity().getApplicationContext(),isStoreToSDCard));
+        onUpdateDataSignal();
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        FragmentActivity    faActivity  = (FragmentActivity)    super.getActivity();
+        // Replace LinearLayout by the type of the root element of the layout you're trying to load
+        RelativeLayout rlLayout    = (RelativeLayout)    inflater.inflate(R.layout.fragment_record, container, false);
+        super.onCreate(savedInstanceState);
         // get whether we are now store the records in the sdcard
-        Intent intent=getIntent();
-        isStoreToSDCard = intent.getBooleanExtra("isStoreToSDCard",false);
-        dir = new File(FileUtil.getRecordFolderPath(getApplicationContext(),isStoreToSDCard));
-        lv = (ListView) findViewById(R.id.listView);
-        btnFirst = (Button)findViewById(R.id.btnFirst);
-        btnSecond = (Button)findViewById(R.id.btnSecond);
-        btnThird = (Button)findViewById(R.id.btnThird);
-        tv_show = (TextView)findViewById(R.id.tvNumber);
+        //isStoreToSDCard = intent.getBooleanExtra("isStoreToSDCard",false);
+        lv = (ListView)rlLayout.findViewById(R.id.listView);
+        btnFirst = (Button)rlLayout.findViewById(R.id.btnFirst);
+        btnSecond = (Button)rlLayout.findViewById(R.id.btnSecond);
+        btnThird = (Button)rlLayout.findViewById(R.id.btnThird);
+        tv_show = (TextView)rlLayout.findViewById(R.id.tvNumber);
 
         list = new ArrayList<String>();
         isMulChoice = false;
 
         initData();
 
+        // registe the pausecontrol
+        ((OnRecordItemStateChangedListener) getActivity()).setOnFragmentChangeListener(this);
+        ((OnRecordItemStateChangedListener) getActivity()).setOnActionOperationListener(this);
 
-        mAdapter = new MyAdapter(list,this);
+        mAdapter = new MyAdapter(list,super.getActivity());
+        MyAdapter.setPos(-1);
         lv.setAdapter(mAdapter);
 
         // cancel the mulchoice
@@ -88,12 +132,16 @@ public class RecordListActivity extends ActionBarActivity {
                     btnFirst.setBackground(firstDrawable);
                     Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_play);
                     btnSecond.setBackground(secondDrawable);
+                    MyAdapter.setPos(-1);
                     dataChanged();
-                    invalidateOptionsMenu();
+                }
+                else if(isMulChoice == false && isPlaying) // now it will be the stop function
+                {
+                    stopPlayRecord();
                 }
                 else // now that will be the rename function
                 {
-                    final AlertDialog.Builder builderR = new AlertDialog.Builder(RecordListActivity.this);
+                    final AlertDialog.Builder builderR = new AlertDialog.Builder(RecordListActivity.super.getActivity());
                     builderR.setTitle("Rename file");
                     builderR.setCancelable(true);
 
@@ -124,7 +172,7 @@ public class RecordListActivity extends ActionBarActivity {
                             }
                         }
                     };
-                    final EditText input = new EditText(getApplicationContext());
+                    final EditText input = new EditText(getActivity().getApplicationContext());
                     input.setFilters(new InputFilter[]{filter});
                     try {
                         input.setText(list.get(MyAdapter.getPos()).toCharArray(), 0, list.get(MyAdapter.getPos()).lastIndexOf("."));
@@ -142,35 +190,30 @@ public class RecordListActivity extends ActionBarActivity {
 
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-                            if(input.getText().toString().equals("")){
-                                Toast.makeText(getApplicationContext(), "Please enter a name for the file", Toast.LENGTH_LONG);
-                            }
-                            else{
+                            if (input.getText().toString().equals("")) {
+                                Toast.makeText(getActivity().getApplicationContext(), "Please enter a name for the file", Toast.LENGTH_LONG);
+                            } else {
                                 File from = new File(dir + "/" + list.get(MyAdapter.getPos()));
                                 // get the extension of the record file
                                 String suffix = "";
-                                try
-                                {
-                                    suffix = from.getName().substring(from.getName().lastIndexOf("."),from.getName().length());
-                                }
-                                catch (Exception e)
-                                {
+                                try {
+                                    suffix = from.getName().substring(from.getName().lastIndexOf("."), from.getName().length());
+                                } catch (Exception e) {
 
                                 }
                                 // get the filename with extension
                                 String fileName = input.getText().toString();
                                 // get all the name before '.'
-                                if(!fileName.endsWith(suffix))
-                                {
+                                if (!fileName.endsWith(suffix)) {
                                     fileName = fileName + suffix;
                                 }
                                 File to = new File(dir + "/" + fileName);
 
-                                if(from.renameTo(to)){
+                                if (from.renameTo(to)) {
                                     System.out.println("The position is " + MyAdapter.getPos());
                                     /** I have to do it here, don't I? How should I update the listview with the renamed file name?     **/
                                     initData();
-                                    mAdapter = new MyAdapter(list,getApplicationContext());
+                                    mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
                                     lv.setAdapter(mAdapter);
                                     mAdapter.notifyDataSetChanged();
                                     checkNum = 0;
@@ -209,21 +252,25 @@ public class RecordListActivity extends ActionBarActivity {
                         isPlaying = true;
                         curPlayTime = 0;
                         // set the visiblity of buttons
-                        btnFirst.setVisibility(View.INVISIBLE);
+                        btnFirst.setVisibility(View.VISIBLE);
                         btnThird.setVisibility(View.INVISIBLE);
                         // set the selector of the button
+                        Drawable fristDrawable = getResources().getDrawable(R.drawable.selector_icon_stop);
+                        btnFirst.setBackground(fristDrawable);
                         Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_pause);
                         btnSecond.setBackground(secondDrawable);
                         // get the selected record path
                         String filePath = dir + "/" + list.get(MyAdapter.getPos());
                         try {
                             mMediaPlayer = new MediaPlayer();
-                            mMediaPlayer.setDataSource(getApplicationContext(), Uri.parse(filePath));
+                            mMediaPlayer.setDataSource(getActivity().getApplicationContext(), Uri.parse(filePath));
                             mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                                 @Override
                                 public void onCompletion(MediaPlayer mp) {
                                     isPlaying = false;
                                     isPause = false;
+                                    Drawable firstDrawable = getResources().getDrawable(R.drawable.selector_icon_rename);
+                                    btnFirst.setBackground(firstDrawable);
                                     Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_play);
                                     btnSecond.setBackground(secondDrawable);
                                     mMediaPlayer = null;
@@ -270,63 +317,9 @@ public class RecordListActivity extends ActionBarActivity {
                         }
                     }
                 }
-                else // now that will be the share function
+                else // now that will be the delete function
                 {
-                    // ask user if (s)he wants to delete the file
-                    AlertDialog alertDialog = new AlertDialog.Builder(RecordListActivity.this).create();
-
-                    //set Title
-                    alertDialog.setTitle("Confirm");
-
-                    //prompt
-                    alertDialog.setMessage("Do you really want to delete the record?");
-
-                    //add Cancel button
-                    alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener() {
-
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            // TODO Auto-generated method stub
-
-                        }
-                    });
-
-                    //add other button to the dialog
-                    alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, "Yes", new DialogInterface.OnClickListener() {
-
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            boolean isSuccessfulDel = true;
-                            // delete file
-                            HashMap<Integer,Boolean> isSelected = MyAdapter.getIsSelected();
-                            for(int i = 0 ; i < isSelected.size(); i++) {
-                                if(isSelected.get(i) == false)
-                                {
-                                    continue;
-                                }
-                                File file = new File(dir + "/" + list.get(i));
-                                System.out.println(dir + list.get(i));
-                                if (!file.delete()) {
-                                    isSuccessfulDel = false;
-                                }
-                            }
-                            initData();
-                            mAdapter = new MyAdapter(list,getApplicationContext());
-                            lv.setAdapter(mAdapter);
-                            mAdapter.notifyDataSetChanged();
-                            btnFirst.callOnClick();
-                            if(isSuccessfulDel) {
-                                Toast.makeText(getApplicationContext(), "File Deleted", Toast.LENGTH_SHORT).show();
-                            }
-                            else
-                            {
-                                Toast.makeText(getApplicationContext(), "File Can't Deleted Totally", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    });
-
-                    //show dialog
-                    alertDialog.show();
+                    deleteFile();
                 }
             }
         });
@@ -335,7 +328,7 @@ public class RecordListActivity extends ActionBarActivity {
         btnThird.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(getApplicationContext(),"We will show the records detail...",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity().getApplicationContext(), "We will show the records detail...", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -343,7 +336,7 @@ public class RecordListActivity extends ActionBarActivity {
         lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                if(isMulChoice) {
+                if (isMulChoice) {
                     ViewHolder holder = (ViewHolder) view.getTag();
 
                     holder.cb.toggle();
@@ -352,21 +345,51 @@ public class RecordListActivity extends ActionBarActivity {
 
                     if (holder.cb.isChecked() == true) {
                         checkNum++;
-                    }
-                    else {
+                    } else {
                         checkNum--;
                     }
 
                     tv_show.setText("select " + checkNum + " item(s)");
                     if (checkNum == 0)
                         btnFirst.performClick();
-                }
-                else // not multichoice
+                } else // not multichoice
                 {
                     // stop the record
-                    stopPlayRecord();
-                    MyAdapter.setPos(position);
-                    dataChanged();
+                    if(searchKeyword.equals("") == false) // click from the search function
+                    {
+
+                        stopPlayRecord();
+                        // save the file name
+                        String selectedFileName = list.get(position);
+                        initData();
+
+                        mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
+                        lv.setAdapter(mAdapter);
+                        // find the position of selected file
+                        for(int i = 0; i < list.size(); i++)
+                        {
+                            if(list.get(i).equals(selectedFileName))
+                            {
+                                mAdapter.setPos(i);
+                                lv.setSelection(i);
+                            }
+                        }
+                        dataChanged();
+                    }
+                    else
+                    {
+                        stopPlayRecord();
+                        if(position == MyAdapter.getPos()) // cancel
+                        {
+                            isMulChoice = true;
+                            btnFirst.performClick();
+                        }
+                        else
+                        {
+                            MyAdapter.setPos(position);
+                            dataChanged();
+                        }
+                    }
                     //Toast.makeText(getApplicationContext(),"click" + position,Toast.LENGTH_SHORT).show();
                 }
             }
@@ -384,17 +407,16 @@ public class RecordListActivity extends ActionBarActivity {
                 btnSecond.setBackground(secondDrawable);
 
                 MyAdapter.setPos(-1);
-                for(int i = 0; i < list.size(); i ++)
-                {
-                    MyAdapter.getIsSelected().put(i,false);
+                for (int i = 0; i < list.size(); i++) {
+                    MyAdapter.getIsSelected().put(i, false);
                 }
                 dataChanged();
-                invalidateOptionsMenu();
                 return false;
             }
         });
 
         dataChanged();
+        return rlLayout;
     }
 
     public void stopPlayRecord()
@@ -405,6 +427,8 @@ public class RecordListActivity extends ActionBarActivity {
             isPause = false;
             isPlaying = false;
             mMediaPlayer = null;
+            Drawable firstDrawable = getResources().getDrawable(R.drawable.selector_icon_rename);
+            btnFirst.setBackground(firstDrawable);
             Drawable secondDrawable = getResources().getDrawable(R.drawable.selector_icon_play);
             btnSecond.setBackground(secondDrawable);
         }
@@ -412,69 +436,50 @@ public class RecordListActivity extends ActionBarActivity {
         btnFirst.setVisibility(View.VISIBLE);
         btnThird.setVisibility(View.VISIBLE);
     }
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        if(isMulChoice) {
-            // Inflate the menu; this adds items to the action bar if it is present.
-            getMenuInflater().inflate(R.menu.menu_record, menu);
-        }
-        else
-        {
-            getMenuInflater().inflate(R.menu.menu_main, menu);
-        }
 
-        return true;
-    }
 
-    @Override
-    public boolean onPrepareOptionsMenu(Menu menu) {
-        menu.clear();
-        if(isMulChoice) {
-            // Inflate the menu; this adds items to the action bar if it is present.
-            getMenuInflater().inflate(R.menu.menu_record, menu);
-        }
-        else
-        {
-            getMenuInflater().inflate(R.menu.menu_main, menu);
-        }
-
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_share) {
-            return true;
-        }
-        if (id == R.id.action_setting) {
-            Intent intent = new Intent(this, SettingActivity.class);
-            startActivity(intent);
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-    // ��ʼ������
+    // ��ʼ�
     private void initData() {
+        initData("");
+    }
+    private void initData(String keyword) {
         list = null;
         list = new ArrayList<>();
-        File file = new File(FileUtil.getRecordFolderPath(getApplicationContext(),isStoreToSDCard));
+
+//        String selection = MediaStore.Audio.Media.DATA +" like " + "'" + FileUtil.getRecordFolderPath(getActivity().getApplicationContext(),isStoreToSDCard) + "%'";
+//        Cursor cursor = getActivity().getApplicationContext().getContentResolver().query(
+//                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, null, selection, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
+//        if (cursor != null) {
+//            cursor.moveToFirst();
+//            int durationIndex = cursor
+//                    .getColumnIndex(MediaStore.Audio.Media.DURATION);
+//            int dataIndex = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
+//            int audioSum = cursor.getCount(); // all count
+//            Log.e(LOG_TAG, "audioSum:" + audioSum);
+//            for (int counter = 0; counter < audioSum; counter++) {
+//                list.add(cursor.getString(dataIndex) + cursor.getInt(durationIndex));
+//                cursor.moveToNext();
+//            }
+//            cursor.close();
+//        }
+        File file = new File(FileUtil.getRecordFolderPath(getActivity().getApplicationContext(),isStoreToSDCard));
         try
         {
             File[] files = file.listFiles();
             if (files.length > 0)
             {
+                MediaMetadataRetriever mmr = new MediaMetadataRetriever();
                 for (int j = 0; j < files.length; j++)
                 {
                     if (!files[j].isDirectory())
                     {
-                        list.add(files[j].getName());
+                        mmr.setDataSource(files[j].getAbsolutePath());
+                        //list.add(files[j].getName() + "  " + mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                        String fileName = files[j].getName();
+                        if(keyword.equals("") == false && fileName.indexOf(keyword) >= 0)
+                            list.add(files[j].getName());
+                        else if(keyword.equals(""))
+                            list.add(files[j].getName());
                     }
                 }
             }
@@ -495,11 +500,13 @@ public class RecordListActivity extends ActionBarActivity {
                 btnFirst.setVisibility(View.INVISIBLE);
                 btnSecond.setVisibility(View.INVISIBLE);
                 btnThird.setVisibility(View.INVISIBLE);
+                itemStateChanged(0); // nothing
             }
             else {
                 btnFirst.setVisibility(View.VISIBLE);
                 btnSecond.setVisibility(View.VISIBLE);
                 btnThird.setVisibility(View.VISIBLE);
+                itemStateChanged(1); // single choice
             }
             tv_show.setVisibility(View.INVISIBLE);
             mAdapter.setMulChoice(false);
@@ -511,12 +518,112 @@ public class RecordListActivity extends ActionBarActivity {
             btnThird.setVisibility(View.INVISIBLE);
             tv_show.setVisibility(View.VISIBLE);
             mAdapter.setMulChoice(true);
+            itemStateChanged(2); // multi choice
         }
         mAdapter.notifyDataSetChanged();
 
         tv_show.setText("select " + checkNum + " item(s)");
     }
 
+    // item state was changed,so let the container know
+    private void itemStateChanged(int state)
+    {
+        ((OnRecordItemStateChangedListener) getActivity()).onStateChange(state);
+    }
 
+    private void deleteFile()
+    {
+        // ask user if (s)he wants to delete the file
+        AlertDialog alertDialog = new AlertDialog.Builder(RecordListActivity.super.getActivity()).create();
+        //set Title
+        alertDialog.setTitle("Confirm");
+        //prompt
+        alertDialog.setMessage("Do you really want to delete the record?");
+        //add Cancel button
+        alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener() {
 
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // TODO Auto-generated method stub
+
+            }
+        });
+
+        //add other button to the dialog
+        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, "Yes", new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                boolean isSuccessfulDel = true;
+                if(isMulChoice == false) // just delete the file
+                {
+                    try {
+                        File file = new File(dir + "/" + list.get(mAdapter.getPos()));
+                        if (!file.delete()) {
+                            isSuccessfulDel = false;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+
+                    }
+                }
+                else {
+                    // delete files
+                    HashMap<Integer, Boolean> isSelected = MyAdapter.getIsSelected();
+                    for (int i = 0; i < isSelected.size(); i++) {
+                        if (isSelected.get(i) == false) {
+                            continue;
+                        }
+                        File file = new File(dir + "/" + list.get(i));
+                        System.out.println(dir + list.get(i));
+                        if (!file.delete()) {
+                            isSuccessfulDel = false;
+                        }
+                    }
+                    btnFirst.callOnClick();
+                }
+                initData();
+                mAdapter = new MyAdapter(list,getActivity().getApplicationContext());
+                lv.setAdapter(mAdapter);
+                mAdapter.notifyDataSetChanged();
+                itemStateChanged(0);
+                if(isSuccessfulDel) {
+                    Toast.makeText(getActivity().getApplicationContext(), "File Deleted", Toast.LENGTH_SHORT).show();
+                }
+                else
+                {
+                    Toast.makeText(getActivity().getApplicationContext(), "File Can't Deleted Totally", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        //show dialog
+        alertDialog.show();
+    }
+    @Override
+    public void onDeleteFile() {
+        deleteFile();
+    }
+
+    @Override
+    public void onSearchFile(String keyword) {
+        if(searchKeyword.equals("") == false && keyword.equals("")) // cancel the search function
+        {
+            searchKeyword = keyword;
+            return;
+        }
+        initData(keyword);
+        mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
+        lv.setAdapter(mAdapter);
+        mAdapter.notifyDataSetChanged();
+        checkNum = 0;
+
+        searchKeyword = keyword;
+    }
+
+    @Override
+    public void onShareFile() {
+
+    }
 }

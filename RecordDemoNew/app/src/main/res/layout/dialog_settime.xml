@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#FFFFFF"
+    android:orientation="vertical" >
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:background="#ffffff" >
+
+            <com.teamsix.recorddemo.recorddemo.PickerView
+                android:id="@+id/hour_pv"
+                android:layout_width="60dp"
+                android:layout_height="120dp" />
+
+            <TextView
+                android:id="@+id/hour_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@id/hour_pv"
+                android:text="H"
+                android:textColor="#ffaa33"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.teamsix.recorddemo.recorddemo.PickerView
+                android:id="@+id/minute_pv"
+                android:layout_width="60dp"
+                android:layout_height="120dp"
+                android:layout_toRightOf="@id/hour_tv"
+                />
+
+            <TextView
+                android:id="@+id/minute_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@id/minute_pv"
+                android:text="Min"
+                android:textColor="#ffaa33"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <com.teamsix.recorddemo.recorddemo.PickerView
+                android:id="@+id/second_pv"
+                android:layout_width="60dp"
+                android:layout_height="120dp"
+                android:layout_toRightOf="@id/minute_tv" />
+
+            <TextView
+                android:id="@+id/second_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@id/second_pv"
+                android:text="Sec"
+                android:textColor="#ffaa33"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </RelativeLayout>
+    </RelativeLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="14dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginTop="30dp" >
+
+        <Button
+            android:id="@+id/confirm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="10dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/setting_max_time_confirm"/>
+
+        <Button
+            android:id="@+id/cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/setting_max_time_cancel" />
+    </LinearLayout>
+
+</LinearLayout>

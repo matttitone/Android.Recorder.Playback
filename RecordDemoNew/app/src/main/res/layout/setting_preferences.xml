@@ -20,7 +20,11 @@
             android:entryValues="@array/entries_value_list_quaility"
             android:key="list_quality"
             android:title="Choose the quaility of the record" />
-        <Preference android:key="preference" android:title="preference"/>
+
+        <com.teamsix.recorddemo.recorddemo.TimeDialogPreference
+            android:key="time_picker_preference"
+            android:persistent="false"
+            />
 
     </PreferenceCategory>
 

@@ -2,84 +2,61 @@ package com.teamsix.recorddemo.recorddemo;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
-import android.media.MediaPlayer;
-import android.media.MediaRecorder;
-import android.os.Environment;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
+import android.support.v7.app.ActionBar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.TextView;
+import android.support.v7.widget.SearchView;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.util.ArrayList;
+public class MainActivity extends ActionBarActivity implements OnRecordItemStateChangedListener,MainFragment.OnRecordFinishListener {
 
-public class MainActivity extends ActionBarActivity {
+    CustomPagerAdapter mCustomPagerAdapter;
+    ViewPager mViewPager;
 
-    private static final String LOG_TAG = "AudioRecordTest";
-    //save path of the record file
-    private String FileName = null;
-
-    //list of record segment
-    private ArrayList<String> listRecord;
-
-    // flags
-    private boolean isPause; // flag on whether we have paused during this record
-    private boolean inPause; // flag on whether we are now pause
-
-    //controlers
-    private Button startRecord;
-    private Button stopRecord;
-    private Button showRecordList;
-    private Button bBackground;
-    private CheckBox checkSDCard;
-    private TextView state;
-
-    //media operation object
-    private MediaPlayer mPlayer = null;
-    private MediaRecorder mRecorder = null;
-
-    AMRRecordUtil recordUtil = null;
-
+    int fragmentCount;     // the current fragment show
+    int recordlistState;   // 0 for nothing 1 for single choice 2 for multi choice
+    FragmentChangeListener fragmentChangeListener; // components which will receive the change signal
+    ActionOperationListener actionOperationListener; // when the action bar is
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        recordUtil = new AMRRecordUtil(getApplicationContext(),true);
+        SharedPreferences sharedPreferences= getSharedPreferences("test",Activity.MODE_PRIVATE);
 
-        listRecord = new ArrayList<String>();
+        fragmentCount = 0;
+        recordlistState = 0;
+        fragmentChangeListener = null;
 
-        // Start the record
-        startRecord = (Button)findViewById(R.id.startRecord);
-        //bind onclick listener
-        startRecord.setOnClickListener(new startRecordListener());
+        mCustomPagerAdapter = new CustomPagerAdapter(getSupportFragmentManager(), this);
 
+        mViewPager = (ViewPager) findViewById(R.id.pager);
+        mViewPager.setAdapter(mCustomPagerAdapter);
+        mViewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                fragmentCount = position;
+                invalidateOptionsMenu();
+                if (fragmentChangeListener != null && position == 0) {
+                    fragmentChangeListener.onPauseSignal();
+                }
+            }
 
-        // Stop Record
-        stopRecord = (Button)findViewById(R.id.stopRecord);
-        stopRecord.setOnClickListener(new stopRecordListener());
-        stopRecord.setVisibility(View.INVISIBLE);
+            @Override
+            public void onPageSelected(int position) {
 
-        // Show Record List
-        showRecordList = (Button)findViewById(R.id.showRecordList);
-        showRecordList.setOnClickListener(new showRecordListListener());
+            }
 
-        bBackground = (Button)findViewById(R.id.bBackground);
+            @Override
+            public void onPageScrollStateChanged(int state) {
 
-        // check for store sd card
-        //checkSDCard = (CheckBox)findViewById(R.id.checkSDCard);
-
-        //State
-        state = (TextView)findViewById(R.id.state);
-
-
+            }
+        });
     }
 
     @Override
@@ -88,6 +65,55 @@ public class MainActivity extends ActionBarActivity {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.clear();
+        if(fragmentCount == 0)
+        {
+            getMenuInflater().inflate(R.menu.menu_main, menu);
+        }
+        if(fragmentCount == 1) {
+            // Inflate the menu; this adds items to the action bar if it is present.
+            if(recordlistState == 0) // single choice
+            {
+                getMenuInflater().inflate(R.menu.menu_search, menu);
+
+                MenuItem searchItem=menu.findItem(R.id.action_search);
+                final SearchView searchView=(SearchView) MenuItemCompat.getActionView(searchItem);
+                searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener()
+                {
+
+                    @Override
+                    public boolean onQueryTextSubmit(String arg0)
+                    {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onQueryTextChange(String arg0)
+                    {
+                        if(actionOperationListener != null)
+                        {
+                            actionOperationListener.onSearchFile(arg0);
+                        }
+                        return false;
+                    }
+                });
+            }
+            if(recordlistState == 1) // single choice
+            {
+                getMenuInflater().inflate(R.menu.menu_del, menu);
+            }
+            if(recordlistState == 2) // multi choice
+            {
+                getMenuInflater().inflate(R.menu.menu_record, menu);
+            }
+        }
+
+        return true;
+    }
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -105,98 +131,59 @@ public class MainActivity extends ActionBarActivity {
             startActivity(intent);
             return true;
         }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    // set the text of the textView
-    private void setStateText(String text)
-    {
-        state.setText(text);
-    }
-
-
-    // start record
-    class startRecordListener implements View.OnClickListener {
-
-        @Override
-        public void onClick(View v) {
-            // TODO Auto-generated method stub
-
-            if(!recordUtil.isRecord()) {
-                try {
-                    //recordUtil = new AMRRecordUtil(getApplicationContext(), checkSDCard.isChecked());
-                    recordUtil.startRecord();
-                    setStateText(getResources().getString(R.string.stateRecord));
-                    startRecord.setBackground(getResources().getDrawable(R.drawable.pauseicon));
-                    bBackground.setBackground(getResources().getDrawable(R.drawable.recordonicon));
-                    stopRecord.setVisibility(View.VISIBLE);
-                } catch (IOException e) {
-                    Log.e(LOG_TAG, Log.getStackTraceString(e));
-                    Toast.makeText(getApplicationContext(), "Start Record Failed!", Toast.LENGTH_SHORT).show();
-                }
+        if (id == R.id.action_delete)
+        {
+            if(actionOperationListener != null)
+            {
+                actionOperationListener.onDeleteFile();
             }
-            else {
-                try {
-                    recordUtil.Pause();
-                } catch (IOException e) {
-                    Log.e(LOG_TAG,Log.getStackTraceString(e));
-                    Toast.makeText(getApplicationContext(),"Pause Record Failed!",Toast.LENGTH_SHORT).show();
-                }
-                // set state
-                if(recordUtil.isPause())
-                {
-                    setStateText(getResources().getString(R.string.statePause));
-                    startRecord.setBackground(getResources().getDrawable(R.drawable.recordicon));
-                    bBackground.setBackground(getResources().getDrawable(R.drawable.recordofficon));
-                }
-                else
-                {
-                    setStateText(getResources().getString(R.string.stateRecord));
-                    startRecord.setBackground(getResources().getDrawable(R.drawable.pauseicon));
-                    bBackground.setBackground(getResources().getDrawable(R.drawable.recordonicon));
-                }
-            }
+            return true;
         }
-
+        if (id == R.id.action_search)
+        {
+            Toast.makeText(getApplicationContext(),"click",Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return false;
+        //return super.onOptionsItemSelected(item);
     }
 
-    class showRecordListListener implements View.OnClickListener
+    @Override
+    public void setOnFragmentChangeListener(FragmentChangeListener listener)
     {
-
-        @Override
-        public void onClick(View v) {
-            Intent intent=new Intent();
-            intent.putExtra("isStoreToSDCard", true);//checkSDCard.isChecked());
-            intent.setClass(MainActivity.this, RecordListActivity.class);
-            startActivity(intent);
-        }
-    }
-    //stop record
-    class stopRecordListener implements View.OnClickListener {
-
-        @Override
-        public void onClick(View v) {
-            // TODO Auto-generated method stub
-            recordUtil.save();
-            setStateText(getResources().getString(R.string.stateStopRecord));
-            Toast.makeText(getApplicationContext(),"Save Record Successfully!",Toast.LENGTH_SHORT).show();
-            stopRecord.setVisibility(View.INVISIBLE);
-            startRecord.setBackground(getResources().getDrawable(R.drawable.recordicon));
-            bBackground.setBackground(getResources().getDrawable(R.drawable.recordofficon));
-
-        }
-
+        fragmentChangeListener = listener;
     }
 
-    // Play Complete
-    class playCompleteListener implements MediaPlayer.OnCompletionListener
+    @Override
+    public void setOnActionOperationListener(ActionOperationListener listener)
     {
+        actionOperationListener = listener;
+    }
 
-        @Override
-        public void onCompletion(MediaPlayer mp) {
-            // set state
-            setStateText( getResources().getString(R.string.stateStopPlay));
+    @Override
+    public void onStateChange(int newState) {
+        recordlistState = newState;
+        invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onRecordFinish() {
+        if (fragmentChangeListener != null) {
+            fragmentChangeListener.onUpdateDataSignal();
         }
     }
+
+    public interface FragmentChangeListener
+    {
+        void onPauseSignal();
+        void onUpdateDataSignal();
+    }
+
+}
+
+interface ActionOperationListener
+{
+    void onDeleteFile();
+    void onSearchFile(String keyword);
+    void onShareFile();
 }

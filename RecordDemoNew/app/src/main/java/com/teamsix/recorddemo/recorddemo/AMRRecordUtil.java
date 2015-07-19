@@ -3,6 +3,8 @@ package com.teamsix.recorddemo.recorddemo;
 import android.content.Context;
 import android.media.MediaRecorder;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,25 +17,56 @@ import java.util.Date;
 /**
  * Created by Administrator on 2015/7/15.
  */
-public class AMRRecordUtil
+interface OnOverMaxRecordLenListener
 {
+    void onOverRecordLength();
+}
+public class AMRRecordUtil extends RecordUtil implements Runnable
+{
+    // over max record len listener interface
+
     private MediaRecorder mRecorder = null;
+    private int maxRecordLen = 0; // max length of the record;
+    private int curRecordLen = 0; // cur length of the record;
     private boolean isOnRecord;  // whether we are on the record
     private boolean isOnPaused;  // whether we are paused
+    private OnOverMaxRecordLenListener maxRecordLenListener = null;
+    private Handler overTimeMessageHandler;
     private ArrayList<String> listFile; // temp file list for the record
-
-    private final String suffix = ".amr";
 
     private String tempPath; // tempfile path for pause
 
+    private Thread threadTimeCounting;     // the thread to count the record time
     private String recordFolderPath;       // record folder path
     private String recordTempFolderPath;  // temp record folder path
+    private Context context;
 
-    public AMRRecordUtil(Context context,boolean externalStorage)
+    public AMRRecordUtil(Context context,boolean externalStorage,int maxRecordLen)
     {
-
+        super(context,externalStorage,maxRecordLen);
+        super.suffix = ".amr";
         recordFolderPath = FileUtil.getRecordFolderPath(context, externalStorage);
-        recordTempFolderPath = FileUtil.getRecordTempFolderPath(context,externalStorage);
+        recordTempFolderPath = FileUtil.getRecordTempFolderPath(context, externalStorage);
+        this.context = context;
+        if(maxRecordLen > 0)
+            this.maxRecordLen = maxRecordLen;
+        else
+            this.maxRecordLen = 0;
+        threadTimeCounting = null;
+
+        overTimeMessageHandler = new Handler() {
+            public void handleMessage(Message msg) {
+                switch (msg.what) {
+                    case 1:
+                        if(maxRecordLenListener!=null)
+                        {
+                            maxRecordLenListener.onOverRecordLength();
+                        }
+                        break;
+                }
+                super.handleMessage(msg);
+            }
+        };
         //recordFolderPath = path + "/Records";
         //recordTempFolderPath = path + "/Records/temp";
 
@@ -55,6 +88,14 @@ public class AMRRecordUtil
             return ;
         isOnRecord = true;
         isOnPaused = false;
+        if(threadTimeCounting != null) // start record,so we just start to count
+        {
+            threadTimeCounting.interrupt();
+            threadTimeCounting = null;
+        }
+        curRecordLen = 0;
+        threadTimeCounting = new Thread(this);
+        threadTimeCounting.start();
         startRecordHelper();
     }
 
@@ -86,6 +127,10 @@ public class AMRRecordUtil
             mRecorder.release();
         }
         isOnRecord = false;
+
+        // stop the record time counting
+        threadTimeCounting.interrupt();
+        threadTimeCounting = null;
 
         // merge the paused file to a record
         String fileName = getAvailableFileName();
@@ -147,13 +192,27 @@ public class AMRRecordUtil
             e.printStackTrace();
         }
         // delete the temp file
-        for (int i = 0; i < listFile.size(); i++)
-        {
-            File file = new File((String) listFile.get(i));
-            if (file.exists()) {
+        File file = new File(recordTempFolderPath);
+        if (file.exists()) {
+            if (file.isFile()) {
                 file.delete();
+            } else if (file.isDirectory()) {
+                File files[] = file.listFiles();
+                for (int i = 0; i < files.length; i++) {
+                    files[i].delete();
+                }
             }
+            file.delete();
         }
+        // write the record info to mediastore
+        //FileUtil.SaveRecordMediaStoreInfo(context,bestFile.getName(),"record_album",bestFile.getAbsolutePath());
+//        for (int i = 0; i < listFile.size(); i++)
+//        {
+//            File file = new File((String) listFile.get(i));
+//            if (file.exists()) {
+//                file.delete();
+//            }
+//        }
         listFile = null;
 
     }
@@ -198,66 +257,33 @@ public class AMRRecordUtil
         mRecorder.start();
     }
 
-    // get a temp file name for the record
-    private String getAvailableTempFileName()
+    // set the overtime listener
+    public void setOverMaxRecordTimeListener(OnOverMaxRecordLenListener listener)
     {
-        return recordTempFolderPath + "/" + getTime() + suffix;
+        maxRecordLenListener = listener;
     }
 
-    // get a file name for the combined record file
-    private String getAvailableFileName()
-    {
-        ArrayList<String> fileList = new ArrayList<String>();
-
-        File file = new File(recordFolderPath);
-        try
-        {
-            File[] files = file.listFiles();
-            if (files.length > 0)
-            {
-                for (int j = 0; j < files.length; j++)
-                {
-                    if (!files[j].isDirectory())
-                    {
-                        fileList.add(files[j].getName());
-                    }
-                }
-            }
-        }
-        catch(Exception e)
-        {
-
-        }
-        int fileNum = 0;
-
-        // get the maximum number of the record file
-        for(int i = 0; i < fileList.size(); i++)
+    @Override
+    public void run() {
+        while(true)
         {
             try
             {
-                int num = 0;
-                num = Integer.parseInt(fileList.get(i).replace("Record", "").replace(suffix,""));
-                if (num > fileNum) {
-                    fileNum = num;
+                Thread.sleep(1000);
+                if(isOnRecord && !isOnPaused) // recording now
+                {
+                    curRecordLen++;
                 }
-            }
-            catch (Exception e)
-            {
-
+                if(curRecordLen >= maxRecordLen)
+                {
+                    Message message = new Message();
+                    message.what = 1;
+                    overTimeMessageHandler.sendMessage(message);
+                    return;
+                }
+            } catch (InterruptedException e) {
+                return;
             }
         }
-
-        fileNum++;
-
-        return recordFolderPath + "/Record" + fileNum + suffix;
-
-    }
-
-    // get the current time for string format
-    private String getTime() {
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        Date curDate = new Date(System.currentTimeMillis());// get current time
-        String time = formatter.format(curDate);
-        return time;
     }
 }
