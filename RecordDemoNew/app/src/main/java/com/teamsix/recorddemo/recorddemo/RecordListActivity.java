@@ -8,6 +8,7 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -23,13 +24,18 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 interface OnRecordItemStateChangedListener
 {
@@ -67,6 +73,46 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     private String searchKeyword = ""; // the search keyword
     private boolean isSearchClicked = false; // to ensure the search close will not effect the search function
 
+    private SeekBar seekBar;
+    private TextView tvStartTime;
+    private TextView tvEndTime;
+    private boolean isChanging;
+
+    private Handler handler = new Handler();
+    private Runnable runnable = new Runnable() {
+        public void run() {
+            this.update();
+            handler.postDelayed(this, 250);
+        }
+        void update() {
+            if(isChanging)
+                return;
+            if(isPlaying)
+            {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                int duration = mMediaPlayer.getDuration();
+                int position = mMediaPlayer.getCurrentPosition();
+                seekBar.setVisibility(View.VISIBLE);
+                seekBar.setMax(duration);
+                seekBar.setProgress(position);
+                tvStartTime.setVisibility(View.VISIBLE);
+                tvStartTime.setText(RecordUtil.getHMSTime(position));
+                tvEndTime.setVisibility(View.VISIBLE);
+                tvEndTime.setText(RecordUtil.getHMSTime(duration));
+            }
+            else
+            {
+                seekBar.setVisibility(View.INVISIBLE);
+                tvStartTime.setVisibility(View.INVISIBLE);
+                tvEndTime.setVisibility(View.INVISIBLE);
+            }
+        }
+    };
+
     @Override
     public void onPauseSignal() {
         btnPause.performClick();
@@ -78,20 +124,30 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     }
 
     @Override
+    public void onPause() {
+        handler.removeCallbacks(runnable);
+        super.onPause();
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
-        // get the max length of the record
+        handler.removeCallbacks(runnable);
+        handler.postDelayed(runnable, 200);
         SettingUtil settingUtil = new SettingUtil(getActivity().getApplicationContext());
         isStoreToSDCard = settingUtil.getStoreInSDCard();
         dir = new File(FileUtil.getRecordFolderPath(getActivity().getApplicationContext(),isStoreToSDCard));
-        mAdapter.setPos(-1);
-        mAdapter.notifyDataSetChanged();
-        itemStateChanged(0);
-        btnPlay.setVisibility(View.INVISIBLE);
-        btnRename.setVisibility(View.INVISIBLE);
-        btnInfo.setVisibility(View.INVISIBLE);
+        if(isPlaying == false)
+        {
+            refreshList();
+            itemStateChanged(0);
+            btnPlay.setVisibility(View.INVISIBLE);
+            btnRename.setVisibility(View.INVISIBLE);
+            btnInfo.setVisibility(View.INVISIBLE);
+        }
         //onUpdateDataSignal();
     }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -100,8 +156,6 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         RelativeLayout rlLayout    = (RelativeLayout)    inflater.inflate(R.layout.fragment_record, container, false);
         super.onCreate(savedInstanceState);
 
-        dbUtil = new DBUtil(getActivity());
-        dbUtil.scanFileToDatabase();
         lv = (ListView)rlLayout.findViewById(R.id.listView);
 
         tv_show = (TextView)rlLayout.findViewById(R.id.tvNumber);
@@ -120,6 +174,12 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         btnDelete.setOnClickListener(new onDeleteListener());
         btnInfo = (Button)rlLayout.findViewById(R.id.btnInfo);
         btnInfo.setOnClickListener(new onInfoListener());
+
+        seekBar = (SeekBar)rlLayout.findViewById(R.id.seekBar);
+        seekBar.setOnSeekBarChangeListener(new MySeekBarProgress());
+        tvStartTime = (TextView)rlLayout.findViewById(R.id.tvStartTime);
+        tvEndTime = (TextView)rlLayout.findViewById(R.id.tvEndTime);
+        isChanging = true;
 
         list = new ArrayList<Record>();
         isMulChoice = false;
@@ -237,6 +297,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
     public void stopPlayRecord()
     {
+        isChanging = true;
         if(mMediaPlayer != null) {
             mMediaPlayer.stop();
             curPlayTime = 0;
@@ -251,6 +312,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         btnPause.setVisibility(View.INVISIBLE);
         btnDelete.setVisibility(View.INVISIBLE);
         btnReturn.setVisibility(View.INVISIBLE);
+        isChanging = false;
     }
 
 
@@ -408,8 +470,9 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         public void onClick(View v) {
             if(isPlaying == false) // start play a record
             {
-                stopPlayRecord();
                 isPlaying = true;
+                isChanging = true;
+                stopPlayRecord();
                 curPlayTime = 0;
                 // set the visiblity of buttons
                 btnRename.setVisibility(View.INVISIBLE);
@@ -427,6 +490,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                     mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                         @Override
                         public void onCompletion(MediaPlayer mp) {
+                            isChanging = true;
                             isPlaying = false;
                             isPause = false;
                             btnRename.setVisibility(View.VISIBLE);
@@ -437,12 +501,15 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                             btnDelete.setVisibility(View.INVISIBLE);
                             btnReturn.setVisibility(View.INVISIBLE);
                             mMediaPlayer = null;
+                            isChanging = false;
                         }
                     });
                     mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                         @Override
                         public void onPrepared(MediaPlayer mp) {
-                            mMediaPlayer.start();
+                            if(mMediaPlayer != null)
+                                mMediaPlayer.start();
+                            isChanging = false;
                         }
                     });
                     mMediaPlayer.prepareAsync();
@@ -646,7 +713,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         }
     }
 
-    // pause function
+    // info function
     public class onInfoListener implements View.OnClickListener
     {
         @Override
@@ -672,5 +739,27 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         lv.setAdapter(mAdapter);
         mAdapter.notifyDataSetChanged();
         checkNum = 0;
+    }
+
+    // deal with the seek bar function
+    class MySeekBarProgress implements SeekBar.OnSeekBarChangeListener {
+        public void onProgressChanged(SeekBar seekBar, int progress,
+                                      boolean fromUser) {
+        }
+
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            isChanging=true;
+        }
+
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            if(isPlaying) {
+                if(isPause) {
+                    curPlayTime = seekBar.getProgress();
+                }
+                mMediaPlayer.seekTo(seekBar.getProgress());
+            }
+            isChanging=false;
+        }
+
     }
 }

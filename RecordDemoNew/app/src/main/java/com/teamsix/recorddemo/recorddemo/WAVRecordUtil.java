@@ -44,7 +44,8 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
     private boolean isPaused = false; // if we are paused.
 
     private OnOverMaxRecordLenListener maxRecordLenListener = null;
-    private Handler overTimeMessageHandler;
+    private OnRecordTimeChangeListener recordTimeChangeListener = null;
+    private Handler timeMessageHandler;
 
     //AudioName for pcm stream
     private String AudioName = "";
@@ -75,13 +76,19 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
             this.maxRecordLen = 0;
         threadTimeCounting = null;
 
-        overTimeMessageHandler = new Handler() {
+        timeMessageHandler = new Handler() {
             public void handleMessage(Message msg) {
                 switch (msg.what) {
                     case 1:
                         if(maxRecordLenListener!=null)
                         {
                             maxRecordLenListener.onOverRecordLength();
+                        }
+                        break;
+                    case 2:
+                        if(recordTimeChangeListener!=null)
+                        {
+                            recordTimeChangeListener.onRecordTimeChange(curRecordLen);
                         }
                         break;
                 }
@@ -121,7 +128,7 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
 
         if(threadTimeCounting != null) // start record,so we just start to count
         {
-            threadTimeCounting.interrupt();
+            threadTimeCounting.stop();
             threadTimeCounting = null;
         }
         curRecordLen = 0;
@@ -141,6 +148,10 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
 
     @Override
     public void save() {
+        // stop the record time counting
+        if(threadTimeCounting != null)
+            threadTimeCounting.stop();
+        threadTimeCounting = null;
         if (audioRecord != null) {
             System.out.println("stopRecord");
             isRecord = false;
@@ -175,6 +186,24 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
     @Override
     public void setOverMaxRecordTimeListener(OnOverMaxRecordLenListener listener) {
         maxRecordLenListener = listener;
+    }
+
+    @Override
+    public void setRecordTimeChangeListener(OnRecordTimeChangeListener listener) {
+        recordTimeChangeListener = listener;
+    }
+
+    @Override
+    public int getPerSecFileSize(int quality) {
+        switch (quality)
+        {
+            case RECORD_LOW_QUALITY:
+                return 80*1024;
+            case RECORD_MIDDLE_QUALITY:
+                return 120*1024;
+            default:
+                return 150*1024;
+        }
     }
 
     private void writeDateTOFile() {
@@ -300,12 +329,15 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
                 if(isRecord && !isPaused) // recording now
                 {
                     curRecordLen++;
+                    Message message = new Message();
+                    message.what = 2;
+                    timeMessageHandler.sendMessage(message);
                 }
                 if(curRecordLen >= maxRecordLen)
                 {
                     Message message = new Message();
                     message.what = 1;
-                    overTimeMessageHandler.sendMessage(message);
+                    timeMessageHandler.sendMessage(message);
                     return;
                 }
             } catch (InterruptedException e) {

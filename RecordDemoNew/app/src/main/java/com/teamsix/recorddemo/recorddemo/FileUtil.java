@@ -5,6 +5,7 @@ import android.content.Context;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.StatFs;
 import android.provider.MediaStore;
 import android.util.Log;
 
@@ -56,5 +57,20 @@ public class FileUtil
                 Log.i("ExternalStorage", "-> uri=" + uri);
             }
         });
+    }
+    public static long getAvailableStorageSpace(boolean externalStorage)
+    {
+        if(externalStorage)
+        {
+            File sdcardDir = Environment.getExternalStorageDirectory();
+            StatFs sf = new StatFs(sdcardDir.getPath());
+            return sf.getAvailableBytes();
+        }
+        else
+        {
+            File root = Environment.getRootDirectory();
+            StatFs sf = new StatFs(root.getPath());
+            return sf.getAvailableBytes();
+        }
     }
 }

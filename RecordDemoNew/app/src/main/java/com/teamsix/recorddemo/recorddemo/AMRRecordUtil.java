@@ -14,13 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-/**
- * Created by Administrator on 2015/7/15.
- */
-interface OnOverMaxRecordLenListener
-{
-    void onOverRecordLength();
-}
+
 public class AMRRecordUtil extends RecordUtil implements Runnable
 {
     // over max record len listener interface
@@ -31,7 +25,8 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
     private boolean isOnRecord;  // whether we are on the record
     private boolean isOnPaused;  // whether we are paused
     private OnOverMaxRecordLenListener maxRecordLenListener = null;
-    private Handler overTimeMessageHandler;
+    private OnRecordTimeChangeListener recordTimeChangeListener = null;
+    private Handler timeMessageHandler;
     private ArrayList<String> listFile; // temp file list for the record
 
     private String tempPath; // tempfile path for pause
@@ -54,13 +49,19 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
             this.maxRecordLen = 0;
         threadTimeCounting = null;
 
-        overTimeMessageHandler = new Handler() {
+        timeMessageHandler = new Handler() {
             public void handleMessage(Message msg) {
                 switch (msg.what) {
                     case 1:
                         if(maxRecordLenListener!=null)
                         {
                             maxRecordLenListener.onOverRecordLength();
+                        }
+                        break;
+                    case 2:
+                        if(recordTimeChangeListener!=null)
+                        {
+                            recordTimeChangeListener.onRecordTimeChange(curRecordLen);
                         }
                         break;
                 }
@@ -90,7 +91,7 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
         isOnPaused = false;
         if(threadTimeCounting != null) // start record,so we just start to count
         {
-            threadTimeCounting.interrupt();
+            threadTimeCounting.stop();
             threadTimeCounting = null;
         }
         curRecordLen = 0;
@@ -129,7 +130,7 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
         isOnRecord = false;
 
         // stop the record time counting
-        threadTimeCounting.interrupt();
+        threadTimeCounting.stop();
         threadTimeCounting = null;
 
         // merge the paused file to a record
@@ -264,6 +265,16 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
     }
 
     @Override
+    public void setRecordTimeChangeListener(OnRecordTimeChangeListener listener) {
+        recordTimeChangeListener = listener;
+    }
+
+    @Override
+    public int getPerSecFileSize(int quality) {
+       return 3*1024;
+    }
+
+    @Override
     public void run() {
         while(true)
         {
@@ -273,12 +284,15 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
                 if(isOnRecord && !isOnPaused) // recording now
                 {
                     curRecordLen++;
+                    Message message = new Message();
+                    message.what = 2;
+                    timeMessageHandler.sendMessage(message);
                 }
                 if(curRecordLen >= maxRecordLen)
                 {
                     Message message = new Message();
                     message.what = 1;
-                    overTimeMessageHandler.sendMessage(message);
+                    timeMessageHandler.sendMessage(message);
                     return;
                 }
             } catch (InterruptedException e) {

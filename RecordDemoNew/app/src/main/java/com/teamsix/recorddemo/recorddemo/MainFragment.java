@@ -11,14 +11,19 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.w3c.dom.Text;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
-public class MainFragment extends Fragment implements OnOverMaxRecordLenListener {
+public class MainFragment extends Fragment implements OnOverMaxRecordLenListener,OnRecordTimeChangeListener {
 
     private static final String LOG_TAG = "AudioRecordTest";
 
@@ -26,11 +31,22 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
     //controlers
     private Button startRecord;
     private Button stopRecord;
-    private Button bBackground;
+    private ImageView bBackground;
     private TextView state;
-
+    private TextView recordTime;
+    private String maxTime = "";
 
     RecordUtil recordUtil = null;
+
+    @Override
+    public void onRecordTimeChange(int timeInSecond) {
+        int millis = timeInSecond * 1000;
+        String hms = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
+                TimeUnit.MILLISECONDS.toMinutes(millis) % TimeUnit.HOURS.toMinutes(1),
+                TimeUnit.MILLISECONDS.toSeconds(millis) % TimeUnit.MINUTES.toSeconds(1));
+        hms += maxTime;
+        recordTime.setText(hms);
+    }
 
     public interface OnRecordFinishListener
     {
@@ -41,17 +57,7 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
     public void onResume() {
         super.onResume();
         // get the max length of the record
-        SettingUtil settingUtil = new SettingUtil(getActivity().getApplicationContext());
-        int length = settingUtil.getMaxHour()*3600+settingUtil.getMaxMinute()*60+settingUtil.getMaxSecond();
-        //recordUtil = new AMRRecordUtil(getActivity().getApplicationContext(),settingUtil.getStoreInSDCard(),length);
-        String type = new SettingUtil(getActivity().getApplicationContext()).getRecordFormat();
-        if(type.endsWith("WAV")) {
-            recordUtil = new WAVRecordUtil(getActivity().getApplicationContext(), settingUtil.getStoreInSDCard(), length);
-        } else
-        {
-            recordUtil = new AMRRecordUtil(getActivity().getApplicationContext(), settingUtil.getStoreInSDCard(), length);
-        }
-        recordUtil.setOverMaxRecordTimeListener(this);
+        initRecordUtil();
 
     }
 
@@ -59,7 +65,7 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         FragmentActivity faActivity  = (FragmentActivity)    super.getActivity();
         // Replace LinearLayout by the type of the root element of the layout you're trying to load
-        LinearLayout llLayout    = (LinearLayout)    inflater.inflate(R.layout.fragment_main, container, false);
+        RelativeLayout llLayout    = (RelativeLayout)    inflater.inflate(R.layout.fragment_main, container, false);
         super.onCreate(savedInstanceState);
 
         // Start the record
@@ -67,21 +73,20 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
         //bind onclick listener
         startRecord.setOnClickListener(new startRecordListener());
 
-
+        bBackground = (ImageView)llLayout.findViewById(R.id.bBackground);
         // Stop Record
         stopRecord = (Button)llLayout.findViewById(R.id.stopRecord);
         stopRecord.setOnClickListener(new stopRecordListener());
         stopRecord.setVisibility(View.INVISIBLE);
 
 
-        bBackground = (Button)llLayout.findViewById(R.id.bBackground);
-
         // check for store sd card
         //checkSDCard = (CheckBox)findViewById(R.id.checkSDCard);
 
         //State
         state = (TextView)llLayout.findViewById(R.id.state);
-
+        recordTime = (TextView)llLayout.findViewById(R.id.tvRecordTime);
+        onRecordTimeChange(0);
         return llLayout;
     }
 
@@ -92,6 +97,53 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
         state.setText(text);
     }
 
+    private void initRecordUtil()
+    {
+        SettingUtil settingUtil = new SettingUtil(getActivity().getApplicationContext());
+        int length = settingUtil.getMaxHour()*3600+settingUtil.getMaxMinute()*60+settingUtil.getMaxSecond();
+        //recordUtil = new AMRRecordUtil(getActivity().getApplicationContext(),settingUtil.getStoreInSDCard(),length);
+        String type = new SettingUtil(getActivity().getApplicationContext()).getRecordFormat();
+        if(type.equals("WAV")) {
+            recordUtil = new WAVRecordUtil(getActivity().getApplicationContext(), settingUtil.getStoreInSDCard(), length);
+        } else
+        {
+            recordUtil = new AMRRecordUtil(getActivity().getApplicationContext(), settingUtil.getStoreInSDCard(), length);
+        }
+
+
+        recordUtil.setOverMaxRecordTimeListener(this);
+        recordUtil.setRecordTimeChangeListener(this);
+    }
+
+    void calcAvailableTime()
+    {
+        SettingUtil settingUtil = new SettingUtil(getActivity().getApplicationContext());
+        long settingTime = settingUtil.getMaxHour()*3600+settingUtil.getMaxMinute()*60+settingUtil.getMaxSecond();
+        settingTime *= 1000;
+        String quality = settingUtil.getRecordQuality();
+        int sizePerSecond = 1;
+        switch (quality)
+        {
+            case "High":
+                sizePerSecond = recordUtil.getPerSecFileSize(RecordUtil.RECORD_HIGH_QUALITY);
+                break;
+            case "Middle":
+                sizePerSecond = recordUtil.getPerSecFileSize(RecordUtil.RECORD_MIDDLE_QUALITY);
+                break;
+            case "Low":
+                sizePerSecond = recordUtil.getPerSecFileSize(RecordUtil.RECORD_LOW_QUALITY);
+                break;
+        }
+        // calculate the max storage time
+        long available = FileUtil.getAvailableStorageSpace(settingUtil.getStoreInSDCard());
+        double availableTime = (double)available/sizePerSecond*1000;
+        if(settingTime > availableTime)
+            settingTime = (long)availableTime;
+        maxTime = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(settingTime),
+                TimeUnit.MILLISECONDS.toMinutes(settingTime) % TimeUnit.HOURS.toMinutes(1),
+                TimeUnit.MILLISECONDS.toSeconds(settingTime) % TimeUnit.MINUTES.toSeconds(1));
+        maxTime = "/" + maxTime;
+    }
 
     @Override
     public void onOverRecordLength() {
@@ -110,6 +162,9 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
             if(!recordUtil.isRecord()) {
                 try {
                     //recordUtil = new AMRRecordUtil(getApplicationContext(), checkSDCard.isChecked());
+                    onRecordTimeChange(0);
+                    initRecordUtil();
+                    calcAvailableTime();
                     recordUtil.startRecord();
                     setStateText(getResources().getString(R.string.stateRecord));
                     startRecord.setBackground(getResources().getDrawable(R.drawable.pauseicon));
@@ -133,6 +188,7 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
                     setStateText(getResources().getString(R.string.statePause));
                     startRecord.setBackground(getResources().getDrawable(R.drawable.recordicon));
                     bBackground.setBackground(getResources().getDrawable(R.drawable.recordofficon));
+
                 }
                 else
                 {
@@ -151,6 +207,7 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
         @Override
         public void onClick(View v) {
             // TODO Auto-generated method stub
+            onRecordTimeChange(0);
             recordUtil.save();
             setStateText(getResources().getString(R.string.stateStopRecord));
             Toast.makeText(getActivity().getApplicationContext(),"Save Record Successfully!",Toast.LENGTH_SHORT).show();
@@ -158,6 +215,8 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
             startRecord.setBackground(getResources().getDrawable(R.drawable.recordicon));
             bBackground.setBackground(getResources().getDrawable(R.drawable.recordofficon));
             ((OnRecordFinishListener)getActivity()).onRecordFinish();
+            recordTime.setText("00:00:00");
+            //calcAvailableTime();
         }
 
     }

@@ -3,7 +3,9 @@
     android:layout_width="match_parent"
     >
 
-    <PreferenceCategory android:title="Settings" >
+    <PreferenceCategory
+        android:title="Settings"
+        android:key="cSettings">
         <CheckBoxPreference
             android:key="checkbox_storeinsdcard"
             android:summary="file path to sdcard:SD/Records"
