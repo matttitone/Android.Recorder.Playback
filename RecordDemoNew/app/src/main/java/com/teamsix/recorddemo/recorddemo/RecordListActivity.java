@@ -42,9 +42,10 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
     private static final String LOG_TAG = "AudioRecordTest";
 
-    private ListView lv;  // listview
+    private ListView lv;     // listview
     private MyAdapter mAdapter;
     private ArrayList<Record> list; // record list
+    private DBUtil dbUtil;  // for data management
     private Button btnPlay;
     private Button btnPause;
     private Button btnStop;
@@ -83,7 +84,13 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         SettingUtil settingUtil = new SettingUtil(getActivity().getApplicationContext());
         isStoreToSDCard = settingUtil.getStoreInSDCard();
         dir = new File(FileUtil.getRecordFolderPath(getActivity().getApplicationContext(),isStoreToSDCard));
-        onUpdateDataSignal();
+        mAdapter.setPos(-1);
+        mAdapter.notifyDataSetChanged();
+        itemStateChanged(0);
+        btnPlay.setVisibility(View.INVISIBLE);
+        btnRename.setVisibility(View.INVISIBLE);
+        btnInfo.setVisibility(View.INVISIBLE);
+        //onUpdateDataSignal();
     }
 
     @Override
@@ -92,6 +99,9 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         // Replace LinearLayout by the type of the root element of the layout you're trying to load
         RelativeLayout rlLayout    = (RelativeLayout)    inflater.inflate(R.layout.fragment_record, container, false);
         super.onCreate(savedInstanceState);
+
+        dbUtil = new DBUtil(getActivity());
+        dbUtil.scanFileToDatabase();
         lv = (ListView)rlLayout.findViewById(R.id.listView);
 
         tv_show = (TextView)rlLayout.findViewById(R.id.tvNumber);
@@ -153,6 +163,9 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                         String selectedFileName = list.get(position).getName();
                         btnReturn.performClick();
                         // find the position of selected file
+
+                        //dataChanged();
+                        refreshList();
                         for(int i = 0; i < list.size(); i++)
                         {
                             if(list.get(i).getName().equals(selectedFileName)) {
@@ -161,7 +174,9 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                                 break;
                             }
                         }
-                        //dataChanged();
+                        btnRename.setVisibility(View.VISIBLE);
+                        btnPlay.setVisibility(View.VISIBLE);
+                        btnInfo.setVisibility(View.VISIBLE);
                         mAdapter.notifyDataSetChanged();
                         itemStateChanged(1); // single choice
                     }
@@ -365,7 +380,8 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
     @Override
     public void onSearchFile(String keyword) {
-        if(isSearchClicked && keyword.equals("")) // cancel the search function
+
+        if(keyword.equals("") && isSearchClicked)
         {
             isSearchClicked = false;
             searchKeyword = keyword;

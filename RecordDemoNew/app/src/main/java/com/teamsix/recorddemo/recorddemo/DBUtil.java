@@ -27,12 +27,13 @@ public class DBUtil extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         // create recordinfo table
         db.execSQL("CREATE TABLE RecordInfo(" +
-                "fileName TEXT DEFAULT NONE," +
-                "length TEXT DEFAULT NONE," +
-                "size TEXT DEFAULT NONE," +
-                "date TEXT DEFAULT NONE," +
-                "isStoredSD TEXT DEFAULT 'YES')"
+                        "fileName TEXT DEFAULT NONE," +
+                        "length TEXT DEFAULT NONE," +
+                        "size TEXT DEFAULT NONE," +
+                        "date TEXT DEFAULT NONE," +
+                        "isStoredSD TEXT DEFAULT 'YES')"
         );
+        //scanFileToDatabase();
     }
 
     @Override
@@ -48,7 +49,7 @@ public class DBUtil extends SQLiteOpenHelper {
             isSD = "Yes";
         }
         SQLiteDatabase dbRead = getReadableDatabase();
-        Cursor c = dbRead.rawQuery("SELCT * FROM RecordInfo WHERE fileName = '" + record.getName() + "'",null);
+        Cursor c = dbRead.rawQuery("SELCT * FROM RecordInfo WHERE fileName = '" + record.getName() + "' AND isStoredSD ='" + isSD + "'",null);
         if(c.getCount() == 0) // then add to db
         {
             SQLiteDatabase dbWrite = getWritableDatabase();
@@ -116,6 +117,16 @@ public class DBUtil extends SQLiteOpenHelper {
         dbWrite.close();
     }
 
+    public void scanFileToDatabase()
+    {
+        deleteAllRecords();
+        scanFileHelper(false);
+        if( Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState()))
+        {
+            scanFileHelper(true);
+        }
+    }
+
     private void scanFileHelper(boolean externalStorage)
     {
         File file = new File(FileUtil.getRecordFolderPath(context,externalStorage));
@@ -140,7 +151,7 @@ public class DBUtil extends SQLiteOpenHelper {
                             mmr.setDataSource(files[j].getAbsolutePath());
                             recordLen = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
                             SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");//初始化Formatter的转换格式。
-                            recordLen = formatter.format(recordLen);
+                            recordLen = formatter.format(Integer.parseInt(recordLen));
                             recordDate = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE);
                         }
                         catch(Exception e)
@@ -160,13 +171,4 @@ public class DBUtil extends SQLiteOpenHelper {
         }
     }
 
-    public void scanFileToDatabase()
-    {
-        deleteAllRecords();
-        scanFileHelper(false);
-        if( Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState()))
-        {
-            scanFileHelper(true);
-        }
-    }
 }
