@@ -2,6 +2,7 @@ package com.teamsix.recorddemo.recorddemo;
 
 import android.app.ActionBar;
 import android.content.Context;
+import android.preference.ListPreference;
 import android.preference.PreferenceFragment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
