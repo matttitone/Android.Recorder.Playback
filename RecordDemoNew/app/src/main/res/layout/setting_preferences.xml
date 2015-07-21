@@ -23,10 +23,9 @@
             android:key="list_quality"
             android:title="Choose the quaility of the record" />
 
-        <com.teamsix.recorddemo.recorddemo.TimeDialogPreference
-            android:key="time_picker_preference"
-            android:persistent="false"
-            />
+        <PreferenceScreen
+            android:key="dialog_timepicker"
+            android:title="Set the max record time"/>
 
     </PreferenceCategory>
 

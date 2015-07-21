@@ -125,6 +125,10 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_share) {
+            if(actionOperationListener != null)
+            {
+                actionOperationListener.onShareFile();
+            }
             return true;
         }
         if (id == R.id.action_setting) {

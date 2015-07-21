@@ -1,8 +1,13 @@
 package com.teamsix.recorddemo.recorddemo;
 
+import android.media.MediaPlayer;
+import android.net.Uri;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Created by Administrator on 2015/7/19.
@@ -18,7 +23,7 @@ public class FileSizeUtil {
      *
      * @param filePath
      *
-     * @return formated with B¡¢KB¡¢MB¡¢GB size string
+     * @return formated with Bï¿½ï¿½KBï¿½ï¿½MBï¿½ï¿½GB size string
      */
     public static String getAutoFileOrFilesSize(String filePath) {
         File file = new File(filePath);
@@ -32,7 +37,7 @@ public class FileSizeUtil {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return FormetFileSize(blockSize);
+        return FormatFileSize(blockSize);
     }
 
     private static long getFileSize(File file) throws Exception {
@@ -60,7 +65,7 @@ public class FileSizeUtil {
         return size;
     }
 
-    private static String FormetFileSize(long fileS) {
+    private static String FormatFileSize(long fileS) {
         DecimalFormat df = new DecimalFormat("#.00");
         String fileSizeString = "";
         String wrongSize = "0B";
@@ -79,7 +84,7 @@ public class FileSizeUtil {
         return fileSizeString;
     }
 
-    private static double FormetFileSize(long fileS, int sizeType) {
+    private static double FormatFileSize(long fileS, int sizeType) {
         DecimalFormat df = new DecimalFormat("#.00");
         double fileSizeLong = 0;
         switch (sizeType) {
@@ -100,5 +105,12 @@ public class FileSizeUtil {
                 break;
         }
         return fileSizeLong;
+    }
+
+    public static String sDate (File a) {
+        Date lastModified = new Date(a.lastModified());
+        SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        String s = formatter.format(lastModified);
+        return s;
     }
 }

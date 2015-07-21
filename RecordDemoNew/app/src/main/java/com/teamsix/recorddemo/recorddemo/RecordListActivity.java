@@ -1,7 +1,9 @@
 package com.teamsix.recorddemo.recorddemo;
 
 import android.app.AlertDialog;
+import android.app.ExpandableListActivity;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.media.MediaMetadataRetriever;
@@ -22,6 +24,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
@@ -32,6 +35,7 @@ import org.w3c.dom.Text;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
@@ -48,7 +52,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
     private static final String LOG_TAG = "AudioRecordTest";
 
-    private ListView lv;     // listview
+    private ExpandableListView lv;     // listview
     private MyAdapter mAdapter;
     private ArrayList<Record> list; // record list
     private DBUtil dbUtil;  // for data management
@@ -156,7 +160,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         RelativeLayout rlLayout    = (RelativeLayout)    inflater.inflate(R.layout.fragment_record, container, false);
         super.onCreate(savedInstanceState);
 
-        lv = (ListView)rlLayout.findViewById(R.id.listView);
+        lv = (ExpandableListView)rlLayout.findViewById(R.id.listView);
 
         tv_show = (TextView)rlLayout.findViewById(R.id.tvNumber);
 
@@ -189,10 +193,10 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         ((OnRecordItemStateChangedListener) getActivity()).setOnFragmentChangeListener(this);
         ((OnRecordItemStateChangedListener) getActivity()).setOnActionOperationListener(this);
 
-        // ��listView�ļ�����
-        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+        lv.setOnGroupClickListener(new ExpandableListView.OnGroupClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            public boolean onGroupClick(ExpandableListView parent, View view, int position, long id) {
                 if (isMulChoice) {
                     ViewHolder holder = (ViewHolder) view.getTag();
                     holder.cb.toggle();
@@ -206,17 +210,21 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
                     tv_show.setText("select " + checkNum + " item(s)");
                     if (checkNum == 0) {
+                        if (mAdapter.getPos() != -1) {
+                            parent.collapseGroup(position);
+                            mAdapter.setPos(-1);
+                        }
                         btnReturn.performClick();
-                        return;
+                        return true;
                     }
                     mAdapter.setMulChoice(true);
                     mAdapter.notifyDataSetChanged();
                 } else // not multichoice
                 {
-                    if(isPlaying)
+                    if (isPlaying)
                         stopPlayRecord();
                     // stop the record
-                    if(searchKeyword.equals("") == false) // click from the search function
+                    if (searchKeyword.equals("") == false) // click from the search function
                     {
                         isSearchClicked = true; // so we will ignore the next "" search key
                         // save the file name
@@ -226,9 +234,9 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
                         //dataChanged();
                         refreshList();
-                        for(int i = 0; i < list.size(); i++)
-                        {
-                            if(list.get(i).getName().equals(selectedFileName)) {
+                        for (int i = 0; i < list.size(); i++) {
+                            if (list.get(i).getName().equals(selectedFileName)) {
+                                lv.expandGroup(i);
                                 mAdapter.setPos(i);
                                 lv.setSelection(i);
                                 break;
@@ -239,32 +247,35 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                         btnInfo.setVisibility(View.VISIBLE);
                         mAdapter.notifyDataSetChanged();
                         itemStateChanged(1); // single choice
-                    }
-                    else
-                    {
-                        if(position == MyAdapter.getPos()) // cancel
+                    } else {
+                        if (position == MyAdapter.getPos()) // cancel
                         {
-                            btnReturn.performClick();
-                        }
-                        else
-                        {
+                            parent.collapseGroup(position);
+                            itemStateChanged(0);
+                        } else {
+                            if (MyAdapter.getPos() != -1) {
+                                parent.collapseGroup(MyAdapter.getPos());
+                            }
                             MyAdapter.setPos(position);
                             itemStateChanged(1); // single choice
                             mAdapter.notifyDataSetChanged();
                             btnRename.setVisibility(View.VISIBLE);
                             btnPlay.setVisibility(View.VISIBLE);
                             btnInfo.setVisibility(View.VISIBLE);
+                            parent.expandGroup(position);
                         }
                     }
                     //Toast.makeText(getApplicationContext(),"click" + position,Toast.LENGTH_SHORT).show();
                 }
+
+                return true;
             }
         });
 
         lv.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                if(isPlaying)
+                if (isPlaying)
                     stopPlayRecord();
                 isMulChoice = true;
                 checkNum = 0;
@@ -281,6 +292,9 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                     MyAdapter.getIsSelected().put(i, false);
                 }
                 // notify the adapter
+                if(MyAdapter.getPos() != -1) {
+                    lv.collapseGroup(MyAdapter.getPos());
+                }
                 MyAdapter.setPos(-1);
                 tv_show.setVisibility(View.INVISIBLE);
                 mAdapter.setMulChoice(false);
@@ -290,6 +304,29 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                 return false;
             }
         });
+
+        lv.setOnGroupExpandListener(new ExpandableListView.OnGroupExpandListener() {
+
+            @Override
+            public void onGroupExpand(int groupPosition) {
+                // Collapse previous parent if expanded.
+                if ((MyAdapter.getPos() != -1) && (groupPosition != MyAdapter.getPos())) {
+                    lv.collapseGroup(MyAdapter.getPos());
+                }
+                MyAdapter.setPos(groupPosition);
+            }
+        });
+
+        lv.setOnGroupCollapseListener(new ExpandableListView.OnGroupCollapseListener() {
+            @Override
+            public void onGroupCollapse(int groupPosition) {
+                MyAdapter.setPos(-1);
+                btnRename.setVisibility(View.INVISIBLE);
+                btnPlay.setVisibility(View.INVISIBLE);
+                btnInfo.setVisibility(View.INVISIBLE);
+            }
+        });
+
         refreshList();
         btnReturn.performClick();
         return rlLayout;
@@ -340,8 +377,12 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                         //mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
                         String fileName = files[j].getName();
                         if((keyword.equals("") == false && fileName.indexOf(keyword) >= 0) || keyword.equals("")) {
-                            Record record = new Record(fileName,"","","",true);
+                            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+                            mmr.setDataSource(files[j].getAbsolutePath());
+                            int recordLen = Integer.parseInt(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                            Record record = new Record(fileName,RecordUtil.getHMSTime(recordLen),FileSizeUtil.sDate(files[j]),FileSizeUtil.getAutoFileOrFilesSize(files[j].getAbsolutePath()),true);
                             list.add(record);
+                            list.get(list.size()-1).setPath(files[j].getAbsolutePath());
                         }
                     }
                 }
@@ -412,15 +453,16 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                     isMulChoice = false;
                     checkNum = 0;
                     // change the button visiblity
-                    btnRename.setVisibility(View.VISIBLE);
-                    btnPlay.setVisibility(View.VISIBLE);
-                    btnInfo.setVisibility(View.VISIBLE);
-                    btnStop.setVisibility(View.INVISIBLE);
-                    btnPause.setVisibility(View.INVISIBLE);
-                    btnDelete.setVisibility(View.INVISIBLE);
-                    btnReturn.setVisibility(View.INVISIBLE);
+
                 }
                 refreshList();
+                btnRename.setVisibility(View.INVISIBLE);
+                btnPlay.setVisibility(View.INVISIBLE);
+                btnInfo.setVisibility(View.INVISIBLE);
+                btnStop.setVisibility(View.INVISIBLE);
+                btnPause.setVisibility(View.INVISIBLE);
+                btnDelete.setVisibility(View.INVISIBLE);
+                btnReturn.setVisibility(View.INVISIBLE);
                 itemStateChanged(0);
                 if(isSuccessfulDel) {
                     Toast.makeText(getActivity().getApplicationContext(), "File Deleted", Toast.LENGTH_SHORT).show();
@@ -460,7 +502,32 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
     @Override
     public void onShareFile() {
-
+        btnReturn.performClick();
+        ArrayList<Uri> uris = new ArrayList<Uri>();
+        for(int i = 0; i < list.size(); i++){
+            //File file=(File)list.get(selectedItemIndexes[i]).get("file");
+            if(MyAdapter.getIsSelected().get(i)) {
+                File file = new File(list.get(i).getPath());
+                Uri u = Uri.fromFile(file);
+                uris.add(u);
+            }
+        }
+        if(uris.size() == 0)
+        {
+            Toast.makeText(getActivity(),"No files selected to share",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        boolean multiple = uris.size() > 1;
+        Intent intent = new Intent(multiple ? android.content.Intent.ACTION_SEND_MULTIPLE
+                : android.content.Intent.ACTION_SEND);
+        if (multiple) {
+            intent.setType("*/*");
+            intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+        } else {
+            intent.setType("audio/*");
+            intent.putExtra(Intent.EXTRA_STREAM, uris.get(0));
+        }
+        startActivity(Intent.createChooser(intent, "Share"));
     }
 
     // play function

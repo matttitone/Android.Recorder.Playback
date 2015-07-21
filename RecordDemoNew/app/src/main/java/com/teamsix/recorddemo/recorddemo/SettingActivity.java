@@ -3,9 +3,11 @@ package com.teamsix.recorddemo.recorddemo;
 
         import android.content.Context;
         import android.content.SharedPreferences;
+        import android.preference.Preference;
         import android.preference.PreferenceFragment;
         import android.preference.PreferenceGroup;
         import android.preference.PreferenceManager;
+        import android.preference.PreferenceScreen;
         import android.support.v7.app.ActionBarActivity;
         import android.os.Bundle;
         import android.view.Menu;
@@ -79,14 +81,34 @@ public class SettingActivity extends ActionBarActivity {
                 {
                     ((PreferenceGroup) findPreference("cSettings")).removePreference(findPreference("list_quality"));
                 }
+                PreferenceScreen timePreference = (PreferenceScreen)getPreferenceScreen().findPreference("dialog_timepicker");
+                timePreference.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+                    @Override
+                    public boolean onPreferenceClick(Preference preference) {
+                        final SetTimeDialog setTimeDialog = new SetTimeDialog(mContext, "Set Record Max Time", "Confirm", "Cancel");
+                        setTimeDialog.show();
+                        setTimeDialog.setClicklistener(new SetTimeDialog.ClickListenerInterface() {
+                            @Override
+                            public void doConfirm() {
+                                // TODO Auto-generated method stub
+                                setTimeDialog.dismiss();
+
+                            }
+
+                            @Override
+                            public void doCancel() {
+                                // TODO Auto-generated method stub
+                                setTimeDialog.dismiss();
+                            }
+                        });
+                        return true;
+                    }
+                });
                 timeDialogPreference =
                         (TimeDialogPreference) getPreferenceScreen().findPreference("time_picker_preference"); //get our preference
                 View.OnClickListener listener = new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        //Intent intent = new Intent("xxxx");
-                        //startActivity(intent);
-                        // if the format is amr,hide the quality setting
                         final SetTimeDialog setTimeDialog = new SetTimeDialog(mContext, "Set Record Max Time", "Confirm", "Cancel");
                         setTimeDialog.show();
                         setTimeDialog.setClicklistener(new SetTimeDialog.ClickListenerInterface() {

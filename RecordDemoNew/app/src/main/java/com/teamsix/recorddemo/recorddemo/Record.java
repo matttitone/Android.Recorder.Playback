@@ -10,6 +10,7 @@ public class Record
     private String size;   // the size of the record
     private String date;   // the date which the record was created
     private boolean isStoredSD; // whether the record was stored in sdCard
+    private String path; // path of file
 
     public Record()
     {
@@ -61,4 +62,8 @@ public class Record
     public void setIsStoredSD(boolean isStoredSD) {
         this.isStoredSD = isStoredSD;
     }
+
+    public void setPath(String path) { this.path = path;}
+
+    public String getPath() {return path;}
 }

@@ -2,7 +2,6 @@ package com.teamsix.recorddemo.recorddemo;
 
 import android.content.Context;
 import android.media.MediaRecorder;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 
@@ -10,9 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 
 public class AMRRecordUtil extends RecordUtil implements Runnable
@@ -91,7 +88,7 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
         isOnPaused = false;
         if(threadTimeCounting != null) // start record,so we just start to count
         {
-            threadTimeCounting.stop();
+            threadTimeCounting.interrupt();
             threadTimeCounting = null;
         }
         curRecordLen = 0;
@@ -130,7 +127,7 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
         isOnRecord = false;
 
         // stop the record time counting
-        threadTimeCounting.stop();
+        threadTimeCounting.interrupt();
         threadTimeCounting = null;
 
         // merge the paused file to a record

@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="Encoding">
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/DBUtil.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/FileUtil.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/MyAdapter.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/Record.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/RecordListActivity.java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/SettingActivity.java" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/app/src/main/res/layout/fragment_record.xml" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/app/src/main/res/layout/listviewitem.xml" charset="UTF-8" />
+  <component name="Encoding" defaultCharsetForPropertiesFiles="UTF-8">
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/AMRRecordUtil.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/WAVRecordUtil.java" charset="GBK" />
+    <file url="PROJECT" charset="UTF-8" />
   </component>
 </project>

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 
@@ -150,7 +149,7 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
     public void save() {
         // stop the record time counting
         if(threadTimeCounting != null)
-            threadTimeCounting.stop();
+            threadTimeCounting.interrupt();
         threadTimeCounting = null;
         if (audioRecord != null) {
             System.out.println("stopRecord");
