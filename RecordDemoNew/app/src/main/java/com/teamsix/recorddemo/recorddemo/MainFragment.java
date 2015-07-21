@@ -51,6 +51,7 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
     public interface OnRecordFinishListener
     {
         void onRecordFinish();
+        void onRecordStart();
     }
 
     @Override
@@ -163,6 +164,7 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
                 try {
                     //recordUtil = new AMRRecordUtil(getApplicationContext(), checkSDCard.isChecked());
                     onRecordTimeChange(0);
+                    ((OnRecordFinishListener)getActivity()).onRecordStart();
                     initRecordUtil();
                     calcAvailableTime();
                     recordUtil.startRecord();

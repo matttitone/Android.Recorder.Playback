@@ -71,8 +71,8 @@
     <Button
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:id="@+id/btnInfo"
-        android:background="@drawable/selector_icon_info"
+        android:id="@+id/btnSingleDelete"
+        android:background="@drawable/selector_icon_delete"
         android:layout_alignTop="@+id/btnRename"
         android:layout_alignParentEnd="true"
         android:layout_marginRight="20dp"

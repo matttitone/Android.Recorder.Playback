@@ -20,6 +20,8 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
 
     int fragmentCount;     // the current fragment show
     int recordlistState;   // 0 for nothing 1 for single choice 2 for multi choice
+    boolean isPlaying;     // whether we are playing
+    boolean isRecording;   // whether we are recording
     FragmentChangeListener fragmentChangeListener; // components which will receive the change signal
     ActionOperationListener actionOperationListener; // when the action bar is
     @Override
@@ -31,6 +33,7 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
 
         fragmentCount = 0;
         recordlistState = 0;
+
         fragmentChangeListener = null;
 
         mCustomPagerAdapter = new CustomPagerAdapter(getSupportFragmentManager(), this);
@@ -71,13 +74,21 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
         menu.clear();
         if(fragmentCount == 0)
         {
-            getMenuInflater().inflate(R.menu.menu_main, menu);
+            if(isRecording)
+            {
+                getMenuInflater().inflate(R.menu.menu_main_nosetting, menu);
+            }
+            else {
+                getMenuInflater().inflate(R.menu.menu_main, menu);
+
+            }
         }
         if(fragmentCount == 1) {
             // Inflate the menu; this adds items to the action bar if it is present.
             if(recordlistState == 0) // single choice
             {
                 getMenuInflater().inflate(R.menu.menu_search, menu);
+
 
                 MenuItem searchItem=menu.findItem(R.id.action_search);
                 final SearchView searchView=(SearchView) MenuItemCompat.getActionView(searchItem);
@@ -88,12 +99,18 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
                     @Override
                     public boolean onQueryTextSubmit(String arg0)
                     {
-                        return true;
+                        if(actionOperationListener != null)
+                        {
+                            actionOperationListener.onSearchFile(arg0);
+                        }
+                        return false;
                     }
 
                     @Override
                     public boolean onQueryTextChange(String arg0)
                     {
+                        if(arg0.equals("") == false)
+                            return true;
                         if(actionOperationListener != null)
                         {
                             actionOperationListener.onSearchFile(arg0);
@@ -102,13 +119,15 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
                     }
                 });
             }
-            if(recordlistState == 1) // single choice
+            if(recordlistState == 1 || recordlistState == 2) // single choice
             {
-                getMenuInflater().inflate(R.menu.menu_del, menu);
-            }
-            if(recordlistState == 2) // multi choice
-            {
-                getMenuInflater().inflate(R.menu.menu_record, menu);
+                if(isPlaying) {
+                    getMenuInflater().inflate(R.menu.menu_record_nosetting, menu);
+                }
+                else
+                {
+                    getMenuInflater().inflate(R.menu.menu_record, menu);
+                }
             }
         }
 
@@ -166,6 +185,18 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
     }
 
     @Override
+    public void onPlayStart() {
+        isPlaying = true;
+        invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onPlayStop() {
+        isPlaying = false;
+        invalidateOptionsMenu();
+    }
+
+    @Override
     public void onStateChange(int newState) {
         recordlistState = newState;
         invalidateOptionsMenu();
@@ -174,8 +205,16 @@ public class MainActivity extends ActionBarActivity implements OnRecordItemState
     @Override
     public void onRecordFinish() {
         if (fragmentChangeListener != null) {
+            isRecording = false;
+            invalidateOptionsMenu();
             fragmentChangeListener.onUpdateDataSignal();
         }
+    }
+
+    @Override
+    public void onRecordStart() {
+        isRecording = true;
+        invalidateOptionsMenu();
     }
 
     public interface FragmentChangeListener

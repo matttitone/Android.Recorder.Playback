@@ -9,23 +9,23 @@
         <CheckBoxPreference
             android:key="checkbox_storeinsdcard"
             android:summary="file path to sdcard:SD/Records"
-            android:title="Save the Record to SD card" />
+            android:title="Save to SD Card" />
         <ListPreference
             android:dialogTitle="Record Format"
             android:entries="@array/entries_list_codec"
             android:entryValues="@array/entries_value_list_codec"
             android:key="list_format"
-            android:title="Choose the format of the record" />
+            android:title="Choose Format" />
         <ListPreference
             android:dialogTitle="Record Quality"
             android:entries="@array/entries_list_quaility"
             android:entryValues="@array/entries_value_list_quaility"
             android:key="list_quality"
-            android:title="Choose the quaility of the record" />
+            android:title="Choose Quality" />
 
         <PreferenceScreen
             android:key="dialog_timepicker"
-            android:title="Set the max record time"/>
+            android:title="Set Max Record Time"/>
 
     </PreferenceCategory>
 

@@ -46,6 +46,8 @@ interface OnRecordItemStateChangedListener
     void onStateChange(int newState);
     void setOnFragmentChangeListener(MainActivity.FragmentChangeListener listener);
     void setOnActionOperationListener(ActionOperationListener listener);
+    void onPlayStart();
+    void onPlayStop();
 }
 
 public class RecordListActivity extends Fragment implements MainActivity.FragmentChangeListener,ActionOperationListener {
@@ -60,7 +62,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     private Button btnPause;
     private Button btnStop;
     private Button btnRename;
-    private Button btnInfo;
+    private Button btnSingleDelete;
     private Button btnDelete;
     private Button btnReturn;
     private int checkNum; // total selected number
@@ -147,7 +149,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
             itemStateChanged(0);
             btnPlay.setVisibility(View.INVISIBLE);
             btnRename.setVisibility(View.INVISIBLE);
-            btnInfo.setVisibility(View.INVISIBLE);
+            btnSingleDelete.setVisibility(View.INVISIBLE);
         }
         //onUpdateDataSignal();
     }
@@ -176,8 +178,8 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         btnReturn.setOnClickListener(new onReturnListener());
         btnDelete = (Button)rlLayout.findViewById(R.id.btnDelete);
         btnDelete.setOnClickListener(new onDeleteListener());
-        btnInfo = (Button)rlLayout.findViewById(R.id.btnInfo);
-        btnInfo.setOnClickListener(new onInfoListener());
+        btnSingleDelete = (Button)rlLayout.findViewById(R.id.btnSingleDelete);
+        btnSingleDelete.setOnClickListener(new singleDeleteListener());
 
         seekBar = (SeekBar)rlLayout.findViewById(R.id.seekBar);
         seekBar.setOnSeekBarChangeListener(new MySeekBarProgress());
@@ -244,7 +246,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                         }
                         btnRename.setVisibility(View.VISIBLE);
                         btnPlay.setVisibility(View.VISIBLE);
-                        btnInfo.setVisibility(View.VISIBLE);
+                        btnSingleDelete.setVisibility(View.VISIBLE);
                         mAdapter.notifyDataSetChanged();
                         itemStateChanged(1); // single choice
                     } else {
@@ -261,7 +263,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                             mAdapter.notifyDataSetChanged();
                             btnRename.setVisibility(View.VISIBLE);
                             btnPlay.setVisibility(View.VISIBLE);
-                            btnInfo.setVisibility(View.VISIBLE);
+                            btnSingleDelete.setVisibility(View.VISIBLE);
                             parent.expandGroup(position);
                         }
                     }
@@ -282,7 +284,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                 // change the button visiblity
                 btnRename.setVisibility(View.INVISIBLE);
                 btnPlay.setVisibility(View.INVISIBLE);
-                btnInfo.setVisibility(View.INVISIBLE);
+                btnSingleDelete.setVisibility(View.INVISIBLE);
                 btnStop.setVisibility(View.INVISIBLE);
                 btnPause.setVisibility(View.INVISIBLE);
                 btnDelete.setVisibility(View.VISIBLE);
@@ -323,7 +325,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                 MyAdapter.setPos(-1);
                 btnRename.setVisibility(View.INVISIBLE);
                 btnPlay.setVisibility(View.INVISIBLE);
-                btnInfo.setVisibility(View.INVISIBLE);
+                btnSingleDelete.setVisibility(View.INVISIBLE);
             }
         });
 
@@ -344,7 +346,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
         }
         btnRename.setVisibility(View.VISIBLE);
         btnPlay.setVisibility(View.VISIBLE);
-        btnInfo.setVisibility(View.VISIBLE);
+        btnSingleDelete.setVisibility(View.VISIBLE);
         btnStop.setVisibility(View.INVISIBLE);
         btnPause.setVisibility(View.INVISIBLE);
         btnDelete.setVisibility(View.INVISIBLE);
@@ -397,6 +399,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     // item state was changed,so let the container know
     private void itemStateChanged(int state)
     {
+        ((OnRecordItemStateChangedListener) getActivity()).onPlayStop();
         ((OnRecordItemStateChangedListener) getActivity()).onStateChange(state);
     }
 
@@ -458,7 +461,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                 refreshList();
                 btnRename.setVisibility(View.INVISIBLE);
                 btnPlay.setVisibility(View.INVISIBLE);
-                btnInfo.setVisibility(View.INVISIBLE);
+                btnSingleDelete.setVisibility(View.INVISIBLE);
                 btnStop.setVisibility(View.INVISIBLE);
                 btnPause.setVisibility(View.INVISIBLE);
                 btnDelete.setVisibility(View.INVISIBLE);
@@ -485,12 +488,12 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     @Override
     public void onSearchFile(String keyword) {
 
-        if(keyword.equals("") && isSearchClicked)
-        {
-            isSearchClicked = false;
-            searchKeyword = keyword;
-            return;
-        }
+//        if(keyword.equals("") && isSearchClicked)
+//        {
+//            isSearchClicked = false;
+//            searchKeyword = keyword;
+//            return;
+//        }
         initData(keyword);
         mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
         lv.setAdapter(mAdapter);
@@ -544,7 +547,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                 // set the visiblity of buttons
                 btnRename.setVisibility(View.INVISIBLE);
                 btnPlay.setVisibility(View.INVISIBLE);
-                btnInfo.setVisibility(View.INVISIBLE);
+                btnSingleDelete.setVisibility(View.INVISIBLE);
                 btnStop.setVisibility(View.VISIBLE);
                 btnPause.setVisibility(View.VISIBLE);
                 btnDelete.setVisibility(View.INVISIBLE);
@@ -557,12 +560,13 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                     mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                         @Override
                         public void onCompletion(MediaPlayer mp) {
+                            ((OnRecordItemStateChangedListener) getActivity()).onPlayStop();
                             isChanging = true;
                             isPlaying = false;
                             isPause = false;
                             btnRename.setVisibility(View.VISIBLE);
                             btnPlay.setVisibility(View.VISIBLE);
-                            btnInfo.setVisibility(View.VISIBLE);
+                            btnSingleDelete.setVisibility(View.VISIBLE);
                             btnStop.setVisibility(View.INVISIBLE);
                             btnPause.setVisibility(View.INVISIBLE);
                             btnDelete.setVisibility(View.INVISIBLE);
@@ -574,6 +578,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                     mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                         @Override
                         public void onPrepared(MediaPlayer mp) {
+                            ((OnRecordItemStateChangedListener) getActivity()).onPlayStart();
                             if(mMediaPlayer != null)
                                 mMediaPlayer.start();
                             isChanging = false;
@@ -598,7 +603,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                         // change the drawable
                         btnRename.setVisibility(View.INVISIBLE);
                         btnPlay.setVisibility(View.INVISIBLE);
-                        btnInfo.setVisibility(View.INVISIBLE);
+                        btnSingleDelete.setVisibility(View.INVISIBLE);
                         btnStop.setVisibility(View.VISIBLE);
                         btnPause.setVisibility(View.VISIBLE);
                         btnDelete.setVisibility(View.INVISIBLE);
@@ -624,7 +629,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                     // change the drawable
                     btnRename.setVisibility(View.INVISIBLE);
                     btnPlay.setVisibility(View.VISIBLE);
-                    btnInfo.setVisibility(View.INVISIBLE);
+                    btnSingleDelete.setVisibility(View.INVISIBLE);
                     btnStop.setVisibility(View.VISIBLE);
                     btnPause.setVisibility(View.INVISIBLE);
                     btnDelete.setVisibility(View.INVISIBLE);
@@ -641,8 +646,10 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     {
         @Override
         public void onClick(View v) {
-            if(isPlaying)
+            if(isPlaying) {
+                ((OnRecordItemStateChangedListener) getActivity()).onPlayStop();
                 stopPlayRecord();
+            }
         }
     }
 
@@ -742,7 +749,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
             btnRename.setVisibility(View.VISIBLE);
             btnPlay.setVisibility(View.VISIBLE);
-            btnInfo.setVisibility(View.VISIBLE);
+            btnSingleDelete.setVisibility(View.VISIBLE);
             btnStop.setVisibility(View.INVISIBLE);
             btnPause.setVisibility(View.INVISIBLE);
             btnDelete.setVisibility(View.INVISIBLE);
@@ -765,7 +772,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
             // change the button visiblity
             btnRename.setVisibility(View.INVISIBLE);
             btnPlay.setVisibility(View.INVISIBLE);
-            btnInfo.setVisibility(View.INVISIBLE);
+            btnSingleDelete.setVisibility(View.INVISIBLE);
             btnStop.setVisibility(View.INVISIBLE);
             btnPause.setVisibility(View.INVISIBLE);
             btnDelete.setVisibility(View.INVISIBLE);
@@ -781,11 +788,11 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     }
 
     // info function
-    public class onInfoListener implements View.OnClickListener
+    public class singleDeleteListener implements View.OnClickListener
     {
         @Override
         public void onClick(View v) {
-
+            deleteFile();
         }
     }
 
