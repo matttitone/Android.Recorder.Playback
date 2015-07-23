@@ -497,6 +497,11 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 //            searchKeyword = keyword;
 //            return;
 //        }
+        if(isSearchClicked)
+        {
+            isSearchClicked = false;
+            return;
+        }
         initData(keyword);
         mAdapter = new MyAdapter(list, getActivity().getApplicationContext());
         lv.setAdapter(mAdapter);
@@ -508,14 +513,28 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
 
     @Override
     public void onShareFile() {
-        btnReturn.performClick();
         ArrayList<Uri> uris = new ArrayList<Uri>();
-        for(int i = 0; i < list.size(); i++){
-            //File file=(File)list.get(selectedItemIndexes[i]).get("file");
-            if(MyAdapter.getIsSelected().get(i)) {
-                File file = new File(list.get(i).getPath());
-                Uri u = Uri.fromFile(file);
-                uris.add(u);
+        if(isMulChoice == false) // single file to share
+        {
+            if(mAdapter.getPos() == -1)  // no file selected
+            {
+                Toast.makeText(getActivity(),"No files selected to share",Toast.LENGTH_SHORT).show();
+                return;
+            }
+            int i = mAdapter.getPos();
+            File file = new File(list.get(i).getPath());
+            Uri u = Uri.fromFile(file);
+            uris.add(u);
+        }
+        else {
+            btnReturn.performClick();
+            for (int i = 0; i < list.size(); i++) {
+                //File file=(File)list.get(selectedItemIndexes[i]).get("file");
+                if (MyAdapter.getIsSelected().get(i)) {
+                    File file = new File(list.get(i).getPath());
+                    Uri u = Uri.fromFile(file);
+                    uris.add(u);
+                }
             }
         }
         if(uris.size() == 0)

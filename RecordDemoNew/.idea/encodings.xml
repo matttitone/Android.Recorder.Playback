@@ -2,11 +2,9 @@
 <project version="4">
   <component name="Encoding" defaultCharsetForPropertiesFiles="UTF-8">
     <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/AMRRecordUtil.java" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/AMRRecordUtil.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/CommonUploadUtils.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/QiNiuConfig.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/RecordUtil.java" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/WAVRecordUtil.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/WAVRecordUtil.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/app/src/main/java/libs/Baidu_OAuth_SDK_Android_G-2.0.0.0.jar" charset="GBK" />
     <file url="file://$PROJECT_DIR$/app/src/main/java/libs/Baidu_PCS_SDK_Android-2.0.0.0.jar" charset="GBK" />
