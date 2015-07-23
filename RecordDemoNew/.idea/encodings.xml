@@ -2,7 +2,27 @@
 <project version="4">
   <component name="Encoding" defaultCharsetForPropertiesFiles="UTF-8">
     <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/AMRRecordUtil.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/AMRRecordUtil.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/CommonUploadUtils.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/QiNiuConfig.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/RecordUtil.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/WAVRecordUtil.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/com/teamsix/recorddemo/recorddemo/WAVRecordUtil.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/Baidu_OAuth_SDK_Android_G-2.0.0.0.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/Baidu_PCS_SDK_Android-2.0.0.0.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/android-async-http-1.4.6.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/armeabi" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/eventbus.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/gson-2.2.2.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/httpmime-4.2.6.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/mta-sdk-1.6.2.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/okhttp-2.3.0-SNAPSHOT.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/okio-1.3.0-SNAPSHOT.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/open_sdk_r5043.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/qiniu-android-sdk-7.0.1.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/qiniu-java-sdk-7.0.1.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/qiniuyun-api-zhb.jar" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/app/src/main/java/libs/xom-1.2.7.jar" charset="GBK" />
     <file url="PROJECT" charset="UTF-8" />
   </component>
 </project>

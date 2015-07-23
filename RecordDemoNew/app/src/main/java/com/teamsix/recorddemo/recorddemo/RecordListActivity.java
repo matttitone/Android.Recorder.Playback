@@ -37,9 +37,12 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Comparator;
+import java.util.Collection;
 
 interface OnRecordItemStateChangedListener
 {
@@ -57,7 +60,6 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
     private ExpandableListView lv;     // listview
     private MyAdapter mAdapter;
     private ArrayList<Record> list; // record list
-    private DBUtil dbUtil;  // for data management
     private Button btnPlay;
     private Button btnPause;
     private Button btnStop;
@@ -388,6 +390,7 @@ public class RecordListActivity extends Fragment implements MainActivity.Fragmen
                         }
                     }
                 }
+                Collections.sort(list);
             }
         }
         catch(Exception e)

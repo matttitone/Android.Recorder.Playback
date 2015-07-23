@@ -5,7 +5,6 @@ import android.content.Context;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -17,6 +16,7 @@ interface OnOverMaxRecordLenListener
 {
     void onOverRecordLength();
 }
+
 interface OnRecordTimeChangeListener
 {
     void onRecordTimeChange(int timeInSecond);
@@ -29,6 +29,10 @@ public abstract class RecordUtil {
     public static final int RECORD_HIGH_QUALITY = 1;
     public static final int RECORD_MIDDLE_QUALITY = 2;
     public static final int RECORD_LOW_QUALITY = 3;
+
+
+    private String recordFileName;         // the record file name which user want to save
+
     public RecordUtil(Context context,boolean externalStorage,int maxRecordLen)
     {
         recordFolderPath = FileUtil.getRecordFolderPath(context, externalStorage);
@@ -39,12 +43,23 @@ public abstract class RecordUtil {
     public abstract boolean isRecord();
     public abstract void save();
     public abstract void Pause() throws IOException;
-    protected String getAvailableTempFileName()
+    public String getAvailableTempFileName()
     {
         return recordTempFolderPath + "/" + getTime() + suffix;
     }
-    protected String getAvailableFileName()
+
+    public String getAvailableFileNumber()
     {
+        if(recordFileName != null)
+        {
+            if(!recordFileName.equals(""))
+            {
+                if(recordFileName.endsWith(suffix))
+                    return recordFileName;
+                else
+                    return recordFileName + suffix;
+            }
+        }
         File file = new File(recordFolderPath);
         int number = 0;
         try
@@ -78,7 +93,12 @@ public abstract class RecordUtil {
 
         number++;
 
-        return recordFolderPath + "/Record" + number + suffix;
+        return "/Record" + number + suffix;
+    }
+
+    protected String getAvailableFileName()
+    {
+        return recordFolderPath +"/"+ getAvailableFileNumber();
     }
     private String getTime()
     {
@@ -93,6 +113,22 @@ public abstract class RecordUtil {
                 TimeUnit.MILLISECONDS.toMinutes(ms) % TimeUnit.HOURS.toMinutes(1),
                 TimeUnit.MILLISECONDS.toSeconds(ms) % TimeUnit.MINUTES.toSeconds(1));
     }
+    public String getRecordFileName() {
+        return recordFileName;
+    }
+
+    public void setRecordFileName(String recordFileName) {
+        this.recordFileName = recordFileName;
+    }
+
+    public String getSuffix() {
+        return suffix;
+    }
+
+    public void setSuffix(String suffix) {
+        this.suffix = suffix;
+    }
+
     public abstract void setOverMaxRecordTimeListener(OnOverMaxRecordLenListener listener);
     public abstract void setRecordTimeChangeListener(OnRecordTimeChangeListener listener);
     public abstract int getPerSecFileSize(int quality);

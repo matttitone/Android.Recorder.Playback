@@ -66,8 +66,6 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
         recordTempFolderPath = FileUtil.getRecordTempFolderPath(context, externalStorage);
         this.context = context;
 
-        NewAudioName = getAvailableFileName();
-        AudioName = getAvailableTempFileName();
 
         if(maxRecordLen > 0)
             this.maxRecordLen = maxRecordLen;
@@ -77,6 +75,8 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
 
         timeMessageHandler = new Handler() {
             public void handleMessage(Message msg) {
+                if(isRecord == false)
+                    return;
                 switch (msg.what) {
                     case 1:
                         if(maxRecordLenListener!=null)
@@ -111,6 +111,8 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
     @Override
     public void startRecord() throws IOException {
         // get the minimum buffer size of record
+        NewAudioName = getAvailableFileName();
+        AudioName = getAvailableTempFileName();
         bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz,
                 channelConfig, audioFormat);
         // generate new record
@@ -325,6 +327,8 @@ public class WAVRecordUtil extends RecordUtil implements Runnable {
             try
             {
                 Thread.sleep(1000);
+                if(isRecord == false)
+                    return;
                 if(isRecord && !isPaused) // recording now
                 {
                     curRecordLen++;

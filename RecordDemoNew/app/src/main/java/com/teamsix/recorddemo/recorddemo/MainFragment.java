@@ -1,16 +1,27 @@
 package com.teamsix.recorddemo.recorddemo;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
+import android.text.InputFilter;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -19,6 +30,7 @@ import android.widget.Toast;
 
 import org.w3c.dom.Text;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +46,11 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
     private ImageView bBackground;
     private TextView state;
     private TextView recordTime;
+    private TextView tvExtension;
+    private EditText editFileName;
     private String maxTime = "";
+    NotificationCompat.Builder nBuilder;
+    NotificationManager mNotificationManager;
 
     RecordUtil recordUtil = null;
 
@@ -57,8 +73,13 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
     @Override
     public void onResume() {
         super.onResume();
+        if (recordUtil != null) {
+            if (!recordUtil.isRecord())
+                initRecordUtil();
+        }
+        else
+                initRecordUtil();
         // get the max length of the record
-        initRecordUtil();
 
     }
 
@@ -87,6 +108,37 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
         //State
         state = (TextView)llLayout.findViewById(R.id.state);
         recordTime = (TextView)llLayout.findViewById(R.id.tvRecordTime);
+
+        editFileName = (EditText)llLayout.findViewById(R.id.editFileName);
+        InputFilter filter = new InputFilter() {
+            @Override
+            public CharSequence filter(CharSequence source, int start, int end,
+                                       Spanned dest, int dstart, int dend) {
+                if (source instanceof SpannableStringBuilder) {
+                    SpannableStringBuilder sourceAsSpannableBuilder = (SpannableStringBuilder)source;
+                    for (int i = end - 1; i >= start; i--) {
+                        char currentChar = source.charAt(i);
+                        if (!Character.isLetterOrDigit(currentChar)) {
+                            Toast.makeText(getActivity(), "Only Characters or Digits allowed!", Toast.LENGTH_LONG);
+                            sourceAsSpannableBuilder.delete(i, i+1);
+                        }
+                    }
+                    return source;
+                } else {
+                    StringBuilder filteredStringBuilder = new StringBuilder();
+                    for (int i = start; i < end; i++) {
+                        char currentChar = source.charAt(i);
+                        if (Character.isLetterOrDigit(currentChar)) {
+                            filteredStringBuilder.append(currentChar);
+                        }
+                    }
+                    return filteredStringBuilder.toString();
+                }
+            }
+        };
+        editFileName.setFilters(new InputFilter[]{filter});
+        tvExtension = (TextView)llLayout.findViewById(R.id.tvExtension);
+
         onRecordTimeChange(0);
         return llLayout;
     }
@@ -98,7 +150,7 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
         state.setText(text);
     }
 
-    private void initRecordUtil()
+    public void initRecordUtil()
     {
         SettingUtil settingUtil = new SettingUtil(getActivity().getApplicationContext());
         int length = settingUtil.getMaxHour()*3600+settingUtil.getMaxMinute()*60+settingUtil.getMaxSecond();
@@ -110,8 +162,18 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
         {
             recordUtil = new AMRRecordUtil(getActivity().getApplicationContext(), settingUtil.getStoreInSDCard(), length);
         }
-
-
+        // get fileName of the record
+        String fileName = editFileName.getText().toString();
+        if(fileName.equals(""))
+        {
+            fileName = recordUtil.getAvailableFileNumber();
+        }
+        fileName = fileName.replace(recordUtil.getSuffix(),"");
+        fileName = fileName.replace("/","");
+        tvExtension.setText(recordUtil.getSuffix());
+        editFileName.setText(fileName);
+        // set fileName of the record
+        recordUtil.setRecordFileName(fileName);
         recordUtil.setOverMaxRecordTimeListener(this);
         recordUtil.setRecordTimeChangeListener(this);
     }
@@ -159,49 +221,109 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
 
         @Override
         public void onClick(View v) {
-            // TODO Auto-generated method stub
             if(!recordUtil.isRecord()) {
-                try {
-                    //recordUtil = new AMRRecordUtil(getApplicationContext(), checkSDCard.isChecked());
-                    onRecordTimeChange(0);
-                    ((OnRecordFinishListener)getActivity()).onRecordStart();
-                    initRecordUtil();
-                    calcAvailableTime();
-                    recordUtil.startRecord();
-                    setStateText(getResources().getString(R.string.stateRecord));
-                    startRecord.setBackground(getResources().getDrawable(R.drawable.pauseicon));
-                    bBackground.setBackground(getResources().getDrawable(R.drawable.recordonicon));
-                    stopRecord.setVisibility(View.VISIBLE);
-                } catch (IOException e) {
-                    Log.e(LOG_TAG, Log.getStackTraceString(e));
-                    Toast.makeText(getActivity().getApplicationContext(), "Start Record Failed!", Toast.LENGTH_SHORT).show();
+                initRecordUtil();
+                String fileName = recordUtil.getAvailableFileName();
+                File file = new File(fileName);
+                if (file.exists()) {
+                    // ask user if (s)he wants to delete the file
+                    android.app.AlertDialog alertDialog = new android.app.AlertDialog.Builder(getActivity()).create();
+                    //set Title
+                    alertDialog.setTitle("Confirm");
+                    //prompt
+                    alertDialog.setMessage("The file " + file.getName() + " already exist,Overwirte?");
+                    //add Cancel button
+                    alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // TODO Auto-generated method stub
+                        }
+                    });
+
+                    //add other button to the dialog
+                    alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, "Yes", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            startRecord();
+                        }
+                    });
+
+                    //show dialog
+                    alertDialog.show();
+                } else {
+                    startRecord();
                 }
             }
-            else {
-                try {
-                    recordUtil.Pause();
-                } catch (IOException e) {
-                    Log.e(LOG_TAG,Log.getStackTraceString(e));
-                    Toast.makeText(getActivity().getApplicationContext(),"Pause Record Failed!",Toast.LENGTH_SHORT).show();
-                }
-                // set state
-                if(recordUtil.isPause())
-                {
-                    setStateText(getResources().getString(R.string.statePause));
-                    startRecord.setBackground(getResources().getDrawable(R.drawable.recordicon));
-                    bBackground.setBackground(getResources().getDrawable(R.drawable.recordofficon));
-
-                }
-                else
-                {
-                    setStateText(getResources().getString(R.string.stateRecord));
-                    startRecord.setBackground(getResources().getDrawable(R.drawable.pauseicon));
-                    bBackground.setBackground(getResources().getDrawable(R.drawable.recordonicon));
-                }
+            else
+            {
+                startRecord();
             }
         }
 
     }
+
+    private void startRecord()
+    {
+        if(!recordUtil.isRecord()) {
+            try {
+                // check if file exist
+                initRecordUtil();
+                onRecordTimeChange(0);
+                ((OnRecordFinishListener)getActivity()).onRecordStart();
+
+                calcAvailableTime();
+                // check if file exist
+                recordUtil.startRecord();
+                setStateText(getResources().getString(R.string.stateRecord));
+                startRecord.setBackground(getResources().getDrawable(R.drawable.pauseicon));
+                bBackground.setBackground(getResources().getDrawable(R.drawable.recordonicon));
+                stopRecord.setVisibility(View.VISIBLE);
+                nBuilder = new NotificationCompat.Builder(getActivity().getApplicationContext());
+                nBuilder.setSmallIcon(R.drawable.recordonicon);
+                nBuilder.setContentTitle("Recording");
+                nBuilder.setContentText("You are Recording");
+                nBuilder.setPriority(1);
+                Intent resultIntent = new Intent(getActivity(),MainActivity.class);
+                resultIntent.setAction(Intent.ACTION_MAIN);
+                resultIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+                resultIntent.setFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
+                PendingIntent resultPendingIntent = PendingIntent.getActivity(getActivity().getApplicationContext(), 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                nBuilder.setContentIntent(resultPendingIntent);
+                mNotificationManager = (NotificationManager) getActivity().getSystemService(Context.NOTIFICATION_SERVICE);
+// mId allows you to update the notification later on.
+                int nId = 0;
+                mNotificationManager.notify(nId,nBuilder.build());
+
+            } catch (IOException e) {
+                Log.e(LOG_TAG, Log.getStackTraceString(e));
+                Toast.makeText(getActivity().getApplicationContext(), "Start Record Failed!", Toast.LENGTH_SHORT).show();
+            }
+        }
+        else {
+            try {
+                recordUtil.Pause();
+            } catch (IOException e) {
+                Log.e(LOG_TAG,Log.getStackTraceString(e));
+                Toast.makeText(getActivity().getApplicationContext(),"Pause Record Failed!",Toast.LENGTH_SHORT).show();
+            }
+            // set state
+            if(recordUtil.isPause())
+            {
+                setStateText(getResources().getString(R.string.statePause));
+                startRecord.setBackground(getResources().getDrawable(R.drawable.recordicon));
+                bBackground.setBackground(getResources().getDrawable(R.drawable.recordonpause));
+
+            }
+            else
+            {
+                setStateText(getResources().getString(R.string.stateRecord));
+                startRecord.setBackground(getResources().getDrawable(R.drawable.pauseicon));
+                bBackground.setBackground(getResources().getDrawable(R.drawable.recordonicon));
+            }
+        }
+    }
+
 
     //stop record
     class stopRecordListener implements View.OnClickListener {
@@ -217,6 +339,7 @@ public class MainFragment extends Fragment implements OnOverMaxRecordLenListener
             startRecord.setBackground(getResources().getDrawable(R.drawable.recordicon));
             bBackground.setBackground(getResources().getDrawable(R.drawable.recordofficon));
             ((OnRecordFinishListener)getActivity()).onRecordFinish();
+            mNotificationManager.cancel(0);
             recordTime.setText("00:00:00");
             //calcAvailableTime();
         }

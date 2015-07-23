@@ -48,6 +48,8 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
 
         timeMessageHandler = new Handler() {
             public void handleMessage(Message msg) {
+                if(!isOnRecord)
+                    return;
                 switch (msg.what) {
                     case 1:
                         if(maxRecordLenListener!=null)
@@ -278,6 +280,8 @@ public class AMRRecordUtil extends RecordUtil implements Runnable
             try
             {
                 Thread.sleep(1000);
+                if(isOnRecord == false)
+                    return;
                 if(isOnRecord && !isOnPaused) // recording now
                 {
                     curRecordLen++;

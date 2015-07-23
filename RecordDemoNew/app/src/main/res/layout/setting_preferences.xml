@@ -27,6 +27,14 @@
             android:key="dialog_timepicker"
             android:title="Set Max Record Time"/>
 
+        <PreferenceScreen
+            android:key="btn_backup"
+            android:title="Backup Records"/>
+
+        <PreferenceScreen
+            android:key="btn_restore"
+            android:title="Restore Records"/>
+
     </PreferenceCategory>
 
 </PreferenceScreen>
